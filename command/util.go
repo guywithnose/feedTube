@@ -61,8 +61,8 @@ func downloadVideos(videos []rssBuilder.Video, outputFolder string) {
 			continue
 		}
 
-		if _, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, video.ID)); os.IsNotExist(err) {
-			downloadVideo(outputFolder, video.ID)
+		if _, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, video.Filename)); os.IsNotExist(err) {
+			downloadVideo(outputFolder, video.ID, video.Filename)
 		}
 	}
 }
@@ -89,8 +89,8 @@ func videosAfter(videos []rssBuilder.Video, after time.Time) []rssBuilder.Video 
 	return filteredVideos
 }
 
-func downloadVideo(outputFolder, videoID string) {
-	out, err := exec.Command("/usr/bin/youtube-dl", "-x", "--audio-format", "mp3", "-o", fmt.Sprintf("%s/%%(id)s.%%(ext)s", outputFolder), videoID).Output()
+func downloadVideo(outputFolder, videoID, fileName string) {
+	out, err := exec.Command("/usr/bin/youtube-dl", "-x", "--audio-format", "mp3", "-o", fmt.Sprintf("%s/%s.%%(ext)s", outputFolder, fileName), videoID).Output()
 	log.Println(string(out))
 	log.Println(err)
 }

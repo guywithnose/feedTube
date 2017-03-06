@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/guywithnose/feedTube/rssBuilder"
+	"github.com/kennygrant/sanitize"
 )
 
 type videoSearchResponse struct {
@@ -198,5 +200,6 @@ func parseVideoItem(item map[string]interface{}) (*rssBuilder.Video, error) {
 		Title:       title,
 		Description: description,
 		Published:   publishedTime,
+		Filename:    fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(title), " ", "-", -1), id["videoId"].(string)),
 	}, nil
 }

@@ -12,6 +12,7 @@ type Video struct {
 	Title       string
 	Description string
 	Published   time.Time
+	Filename    string
 }
 
 // FeedInfo represents youtube channel info
@@ -76,7 +77,7 @@ func BuildRssFile(videos []Video, baseURL string, feedInfo FeedInfo) ([]byte, er
 
 func buildItem(video Video, baseURL string) (*item, error) {
 	thisItem := &item{Title: video.Title, Description: video.Description, GUID: video.ID, PubDate: video.Published.Format(time.RFC1123Z)}
-	enc := enclosure{URL: fmt.Sprintf("%s/%s.mp3", baseURL, video.ID), Type: "audio/mpeg"}
+	enc := enclosure{URL: fmt.Sprintf("%s/%s.mp3", baseURL, video.Filename), Type: "audio/mpeg"}
 	thisItem.Enclosure = enc
 	return thisItem, nil
 }

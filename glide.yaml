@@ -2,3 +2,8 @@ package: github.com/guywithnose/feedTube
 import:
 - package: github.com/urfave/cli
   version: ^1.19.1
+- package: github.com/kennygrant/sanitize
+  version: ^1.2.0
+- package: golang.org/x/net
+  subpackages:
+  - html
