@@ -1,5 +1,10 @@
 Feed Tube uses youtube-dl to download a full playlist or channel into a directory.  It can then generate a podcast RSS file which can be read by a podcatcher like [Podcast Addict](https://play.google.com/store/apps/details?id=com.bambuna.podcastaddict).
 
+### Installation
+```sh
+go get github.com/guywithnose/feedTube
+```
+
 #### Requirements
 youtube-dl with codecs necessary to encode to mp3.
 
