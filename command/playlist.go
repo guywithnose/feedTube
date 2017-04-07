@@ -1,9 +1,6 @@
 package command
 
-import (
-	"github.com/guywithnose/feedTube/youtubeScraper"
-	"github.com/urfave/cli"
-)
+import "github.com/urfave/cli"
 
 // CmdPlaylist builds an rss feed from a youtube playlist
 func CmdPlaylist(c *cli.Context) error {
@@ -17,7 +14,7 @@ func CmdPlaylist(c *cli.Context) error {
 	}
 	playlistID := c.Args().Get(0)
 
-	videos, channel, err := youtubeScraper.GetVideosForPlaylist(apiKey, playlistID, c.App.ErrWriter)
+	videos, channel, err := getVideosForPlaylist(apiKey, playlistID, c.App.ErrWriter)
 	if err != nil {
 		return err
 	}

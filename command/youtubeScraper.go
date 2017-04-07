@@ -1,4 +1,4 @@
-package youtubeScraper
+package command
 
 import (
 	"encoding/json"
@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/guywithnose/feedTube/rssBuilder"
 	"github.com/kennygrant/sanitize"
 )
 
@@ -27,8 +26,8 @@ type channelItem struct {
 	Snippet map[string]interface{} `json:"snippet"`
 }
 
-// GetVideosForChannel returns an array of all the youtube video ids on a channel
-func GetVideosForChannel(apiKey, channelName string, writer io.Writer) ([]rssBuilder.Video, *rssBuilder.FeedInfo, error) {
+// getVideosForChannel returns an array of all the youtube video ids on a channel
+func getVideosForChannel(apiKey, channelName string, writer io.Writer) ([]Video, *FeedInfo, error) {
 	channelID, info, err := getChannelIDFromName(apiKey, channelName)
 	if err != nil {
 		return nil, nil, err
@@ -40,7 +39,7 @@ func GetVideosForChannel(apiKey, channelName string, writer io.Writer) ([]rssBui
 		return nil, nil, err
 	}
 
-	var newVideos []rssBuilder.Video
+	var newVideos []Video
 	for nextPageToken != "" {
 		nextPageToken, newVideos, err = runRequest(nextPageToken, url, writer)
 		if err != nil {
@@ -53,8 +52,8 @@ func GetVideosForChannel(apiKey, channelName string, writer io.Writer) ([]rssBui
 	return videos, info, nil
 }
 
-// GetVideosForPlaylist returns an array of all the youtube video ids in a playlist
-func GetVideosForPlaylist(apiKey, playlistID string, writer io.Writer) ([]rssBuilder.Video, *rssBuilder.FeedInfo, error) {
+// getVideosForPlaylist returns an array of all the youtube video ids in a playlist
+func getVideosForPlaylist(apiKey, playlistID string, writer io.Writer) ([]Video, *FeedInfo, error) {
 	info, err := getPlaylistInfo(apiKey, playlistID)
 	if err != nil {
 		return nil, nil, err
@@ -66,7 +65,7 @@ func GetVideosForPlaylist(apiKey, playlistID string, writer io.Writer) ([]rssBui
 		return nil, nil, err
 	}
 
-	var newVideos []rssBuilder.Video
+	var newVideos []Video
 	for nextPageToken != "" {
 		nextPageToken, newVideos, err = runRequest(nextPageToken, url, writer)
 		if err != nil {
@@ -79,7 +78,7 @@ func GetVideosForPlaylist(apiKey, playlistID string, writer io.Writer) ([]rssBui
 	return videos, info, nil
 }
 
-func getChannelIDFromName(apiKey, channelName string) (string, *rssBuilder.FeedInfo, error) {
+func getChannelIDFromName(apiKey, channelName string) (string, *FeedInfo, error) {
 	url := fmt.Sprintf("https://www.googleapis.com/youtube/v3/channels?key=%s&part=snippet&forUsername=%s", apiKey, channelName)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -101,10 +100,10 @@ func getChannelIDFromName(apiKey, channelName string) (string, *rssBuilder.FeedI
 	title, _ := item.Snippet["title"].(string)
 	description, _ := item.Snippet["description"].(string)
 
-	return item.ID, &rssBuilder.FeedInfo{Title: title, Description: description}, nil
+	return item.ID, &FeedInfo{Title: title, Description: description}, nil
 }
 
-func getPlaylistInfo(apiKey, playlistID string) (*rssBuilder.FeedInfo, error) {
+func getPlaylistInfo(apiKey, playlistID string) (*FeedInfo, error) {
 	url := fmt.Sprintf("https://www.googleapis.com/youtube/v3/playlists?key=%s&part=snippet&id=%s&maxResults=1", apiKey, playlistID)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -127,10 +126,10 @@ func getPlaylistInfo(apiKey, playlistID string) (*rssBuilder.FeedInfo, error) {
 	title, _ := item.Snippet["title"].(string)
 	description, _ := item.Snippet["description"].(string)
 
-	return &rssBuilder.FeedInfo{Title: title, Description: description}, nil
+	return &FeedInfo{Title: title, Description: description}, nil
 }
 
-func runRequest(pageToken, url string, writer io.Writer) (string, []rssBuilder.Video, error) {
+func runRequest(pageToken, url string, writer io.Writer) (string, []Video, error) {
 	if pageToken != "" {
 		url = fmt.Sprintf(url+"&pageToken=%s", pageToken)
 	}
@@ -147,7 +146,7 @@ func runRequest(pageToken, url string, writer io.Writer) (string, []rssBuilder.V
 		return "", nil, err
 	}
 
-	videos := make([]rssBuilder.Video, 0, 50)
+	videos := make([]Video, 0, 50)
 	for _, item := range body.Items {
 		video, err := parseVideoItem(item)
 		if err != nil {
@@ -161,7 +160,7 @@ func runRequest(pageToken, url string, writer io.Writer) (string, []rssBuilder.V
 	return body.NextPageToken, videos, nil
 }
 
-func parseVideoItem(item map[string]interface{}) (*rssBuilder.Video, error) {
+func parseVideoItem(item map[string]interface{}) (*Video, error) {
 	snippet := item["snippet"].(map[string]interface{})
 	title, ok := snippet["title"].(string)
 	rootID := item["id"]
@@ -195,7 +194,7 @@ func parseVideoItem(item map[string]interface{}) (*rssBuilder.Video, error) {
 		return nil, fmt.Errorf("error parsing publidh date on video %s", id)
 	}
 
-	return &rssBuilder.Video{
+	return &Video{
 		ID:          id["videoId"].(string),
 		Title:       title,
 		Description: description,

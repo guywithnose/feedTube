@@ -9,12 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/guywithnose/feedTube/rssBuilder"
 	"github.com/urfave/cli"
 )
 
 // CmdBuild builds the hostfile from a configuration file
-func handleVideos(c *cli.Context, videos []rssBuilder.Video, feedInfo *rssBuilder.FeedInfo) error {
+func handleVideos(c *cli.Context, videos []Video, feedInfo *FeedInfo) error {
 	filter := c.String("filter")
 	after := c.String("after")
 	outputFolder := c.String("outputFolder")
@@ -47,7 +46,7 @@ func handleVideos(c *cli.Context, videos []rssBuilder.Video, feedInfo *rssBuilde
 		return cli.NewExitError("You must specify an baseURL", 1)
 	}
 
-	rss, err := rssBuilder.BuildRssFile(videos, baseURL, *feedInfo)
+	rss, err := buildRssFile(videos, baseURL, *feedInfo)
 	if err != nil {
 		return err
 	}
@@ -55,7 +54,7 @@ func handleVideos(c *cli.Context, videos []rssBuilder.Video, feedInfo *rssBuilde
 	return ioutil.WriteFile(xmlFile, rss, 0644)
 }
 
-func downloadVideos(videos []rssBuilder.Video, outputFolder string) {
+func downloadVideos(videos []Video, outputFolder string) {
 	for _, video := range videos {
 		if video.ID == "" {
 			continue
@@ -67,8 +66,8 @@ func downloadVideos(videos []rssBuilder.Video, outputFolder string) {
 	}
 }
 
-func filterVideos(videos []rssBuilder.Video, filter string) []rssBuilder.Video {
-	filteredVideos := make([]rssBuilder.Video, 0, len(videos))
+func filterVideos(videos []Video, filter string) []Video {
+	filteredVideos := make([]Video, 0, len(videos))
 	for _, video := range videos {
 		if strings.Contains(video.Title, filter) {
 			filteredVideos = append(filteredVideos, video)
@@ -78,8 +77,8 @@ func filterVideos(videos []rssBuilder.Video, filter string) []rssBuilder.Video {
 	return filteredVideos
 }
 
-func videosAfter(videos []rssBuilder.Video, after time.Time) []rssBuilder.Video {
-	filteredVideos := make([]rssBuilder.Video, 0, len(videos))
+func videosAfter(videos []Video, after time.Time) []Video {
+	filteredVideos := make([]Video, 0, len(videos))
 	for _, video := range videos {
 		if video.Published.After(after) {
 			filteredVideos = append(filteredVideos, video)

@@ -1,7 +1,6 @@
 package command
 
 import (
-	"github.com/guywithnose/feedTube/youtubeScraper"
 	"github.com/urfave/cli"
 )
 
@@ -17,7 +16,7 @@ func CmdChannel(c *cli.Context) error {
 	}
 	channelName := c.Args().Get(0)
 
-	videos, feedInfo, err := youtubeScraper.GetVideosForChannel(apiKey, channelName, c.App.ErrWriter)
+	videos, feedInfo, err := getVideosForChannel(apiKey, channelName, c.App.ErrWriter)
 	if err != nil {
 		return err
 	}

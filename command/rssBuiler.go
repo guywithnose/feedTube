@@ -1,4 +1,4 @@
-package rssBuilder
+package command
 
 import (
 	"encoding/xml"
@@ -47,8 +47,8 @@ type enclosure struct {
 	Type string `xml:"type,attr"`
 }
 
-// BuildRssFile builds the rss file from a given list of videos
-func BuildRssFile(videos []Video, baseURL string, feedInfo FeedInfo) ([]byte, error) {
+// buildRssFile builds the rss file from a given list of videos
+func buildRssFile(videos []Video, baseURL string, feedInfo FeedInfo) ([]byte, error) {
 	rss := rss{Version: "2.0"}
 	channel := channel{Title: feedInfo.Title, Description: feedInfo.Description, LastBuildDate: time.Now().Format(time.RFC1123Z)}
 	channel.Items = []item{}
