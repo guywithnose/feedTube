@@ -48,19 +48,13 @@ type enclosure struct {
 }
 
 // buildRssFile builds the rss file from a given list of videos
-func buildRssFile(videos []Video, baseURL string, feedInfo FeedInfo) []byte {
+func buildRssFile(videos []*Video, baseURL string, feedInfo FeedInfo) []byte {
 	rssData := rss{Version: "2.0"}
 	channelData := channel{Title: feedInfo.Title, Description: feedInfo.Description, LastBuildDate: time.Now().Format(time.RFC1123Z)}
 	channelData.Items = []item{}
 
 	for _, video := range videos {
-		if video.ID == "" {
-			continue
-		}
-
-		item := buildItem(video, baseURL)
-
-		channelData.Items = append(channelData.Items, *item)
+		channelData.Items = append(channelData.Items, *buildItem(video, baseURL))
 	}
 
 	rssData.Channel = channelData
@@ -68,7 +62,7 @@ func buildRssFile(videos []Video, baseURL string, feedInfo FeedInfo) []byte {
 	return bytes
 }
 
-func buildItem(video Video, baseURL string) *item {
+func buildItem(video *Video, baseURL string) *item {
 	thisItem := &item{Title: video.Title, Description: video.Description, GUID: video.ID, PubDate: video.Published.Format(time.RFC1123Z)}
 	enc := enclosure{URL: fmt.Sprintf("%s/%s.mp3", baseURL, video.Filename), Type: "audio/mpeg"}
 	thisItem.Enclosure = enc

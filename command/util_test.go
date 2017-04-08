@@ -29,12 +29,6 @@ func getTestServer(responses map[string]string) *httptest.Server {
 			panic(r.URL.String())
 		}
 
-		if response == "httpError" {
-			w.Header().Set("Location", "htp://notarealhostname.foo")
-			w.WriteHeader(http.StatusMovedPermanently)
-			return
-		}
-
 		if response == "error" {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -63,4 +57,19 @@ func getBaseAppAndFlagSet(t *testing.T, outputFolder string) (*cli.App, *bytes.B
 	assert.Nil(t, set.Parse([]string{"awesome"}))
 	app, writer, errorWriter := appWithTestWriters()
 	return app, writer, errorWriter, set
+}
+
+func runErrorTest(
+	t *testing.T,
+	expectedError string,
+	cb *commandBuilder.Test,
+	cmdFunc func(commandBuilder.Builder) func(*cli.Context) error,
+) {
+	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
+	defer removeFile(t, outputFolder)
+	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
+	app, _, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
+	assert.Nil(t, cmdFunc(cb)(cli.NewContext(app, set, nil)))
+	assert.Equal(t, []error(nil), cb.Errors)
+	assert.Equal(t, expectedError, errWriter.String())
 }

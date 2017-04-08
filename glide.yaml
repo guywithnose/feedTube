@@ -10,3 +10,6 @@ import:
 - package: github.com/stretchr/testify
   version: ^1.1.4
 - package: github.com/guywithnose/commandBuilder
+- package: google.golang.org/api
+  subpackages:
+  - youtube/v1

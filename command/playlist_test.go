@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	youtube "google.golang.org/api/youtube/v3"
+
 	"github.com/guywithnose/commandBuilder"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
@@ -248,9 +250,9 @@ func TestCmdPlaylistInvalidPlaylistID(t *testing.T) {
 	defer removeFile(t, outputFolder)
 	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
 	responses := getDefaultPlaylistResponses()
-	playlistInfo := channelResponse{Items: []channelItem{}}
+	playlistInfo := youtube.PlaylistListResponse{Items: []*youtube.Playlist{}}
 	bytes, _ := json.Marshal(playlistInfo)
-	responses["/playlists?key=fakeApiKey&part=snippet&id=awesome&maxResults=1"] = string(bytes)
+	responses["/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet"] = string(bytes)
 	ts := getTestServer(responses)
 	defer ts.Close()
 	youtubeAPIURLBase = ts.URL
@@ -260,67 +262,109 @@ func TestCmdPlaylistInvalidPlaylistID(t *testing.T) {
 	assert.Equal(t, []error(nil), cb.Errors)
 }
 
-func TestCmdPlaylistServerError(t *testing.T) {
-	runPlaylistErrorTest(
-		t,
-		"/playlists?key=fakeApiKey&part=snippet&id=awesome&maxResults=1",
-		"httpError",
-		"Could not connect to %s/playlists?key=fakeApiKey&part=snippet&id=awesome&maxResults=1: "+
-			"Get htp://notarealhostname.foo: unsupported protocol scheme \"htp\"",
-	)
-}
-
 func TestCmdPlaylistYoutubePlaylistError(t *testing.T) {
-	runPlaylistErrorTest(
-		t,
-		"/playlists?key=fakeApiKey&part=snippet&id=awesome&maxResults=1",
-		"error",
-		"EOF",
-	)
+	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
+	defer removeFile(t, outputFolder)
+	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
+	ts := getTestPlaylistServerOverrideResponse("/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet", "error")
+	defer ts.Close()
+	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
+	cb := &commandBuilder.Test{}
+	assert.EqualError(t, CmdPlaylist(cb)(cli.NewContext(app, set, nil)), "Playlist request failed: googleapi: got HTTP response code 500 with body: ")
+	assert.Equal(t, []error(nil), cb.Errors)
 }
 
 func TestCmdPlaylistYoutubeSearchPage1Error(t *testing.T) {
-	runPlaylistErrorTest(
+	ts := getTestPlaylistServerOverrideResponse("/playlistItems?alt=json&key=fakeApiKey&part=snippet&playlistId=awesome", "error")
+	defer ts.Close()
+	runErrorTest(
 		t,
-		"/playlistItems?key=fakeApiKey&maxResults=50&part=snippet&playlistId=awesome",
-		"error",
-		"EOF",
-	)
-}
-
-func TestCmdPlaylistYoutubeSearchPage1HttpError(t *testing.T) {
-	runPlaylistErrorTest(
-		t,
-		"/playlistItems?key=fakeApiKey&maxResults=50&part=snippet&playlistId=awesome",
-		"httpError",
-		"Could not connect to %s/playlistItems?key=fakeApiKey&maxResults=50&part=snippet&playlistId=awesome: "+
-			"Get htp://notarealhostname.foo: unsupported protocol scheme \"htp\"",
+		"Playlist items request failed: googleapi: got HTTP response code 500 with body: \n",
+		&commandBuilder.Test{},
+		CmdPlaylist,
 	)
 }
 
 func TestCmdPlaylistYoutubeSearchPage2Error(t *testing.T) {
-	runPlaylistErrorTest(
+	ts := getTestPlaylistServerOverrideResponse("/playlistItems?alt=json&key=fakeApiKey&pageToken=page2&part=snippet&playlistId=awesome", "error")
+	defer ts.Close()
+	runErrorTest(
 		t,
-		"/playlistItems?key=fakeApiKey&maxResults=50&part=snippet&playlistId=awesome&pageToken=page2",
-		"error",
-		"EOF",
+		"Playlist items request failed: googleapi: got HTTP response code 500 with body: \n",
+		&commandBuilder.Test{
+			ExpectedCommands: []*commandBuilder.ExpectedCommand{
+				commandBuilder.NewExpectedCommand(
+					"",
+					"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+					"video 1 output",
+					0,
+				),
+			},
+		},
+		CmdPlaylist,
 	)
 }
 
-func runPlaylistErrorTest(t *testing.T, url, errorType, expectedError string) {
+func TestCmdPlaylistYoutubeSearchInvalidVideos(t *testing.T) {
 	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
 	defer removeFile(t, outputFolder)
 	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
-	ts := getTestPlaylistServerOverrideResponse(url, errorType)
-	defer ts.Close()
-	cb := &commandBuilder.Test{}
-	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
-	if errorType == "httpError" {
-		assert.EqualError(t, CmdPlaylist(cb)(cli.NewContext(app, set, nil)), fmt.Sprintf(expectedError, ts.URL))
-	} else {
-		assert.EqualError(t, CmdPlaylist(cb)(cli.NewContext(app, set, nil)), expectedError)
+	responses := getDefaultPlaylistResponses()
+	playlistVideosPage1 := youtube.PlaylistItemListResponse{
+		Items: []*youtube.PlaylistItem{
+			{
+				Snippet: &youtube.PlaylistItemSnippet{
+					Title:       "t",
+					Description: "d",
+					PublishedAt: "2007-01-02T15:04:05Z",
+					ResourceId: &youtube.ResourceId{
+						VideoId: "vId1",
+					},
+				},
+			},
+			{
+				Snippet: &youtube.PlaylistItemSnippet{
+					Title:       "t2",
+					Description: "d2",
+					PublishedAt: "2006-01-02T15:04:05Z",
+					ResourceId: &youtube.ResourceId{
+						VideoId: "",
+					},
+				},
+			},
+			{
+				Snippet: &youtube.PlaylistItemSnippet{
+					Title:       "t2",
+					Description: "d2",
+					PublishedAt: "2006-01-02",
+					ResourceId: &youtube.ResourceId{
+						VideoId: "vId2",
+					},
+				},
+			},
+		},
 	}
+	bytes, _ := json.Marshal(playlistVideosPage1)
+	responses["/playlistItems?alt=json&key=fakeApiKey&part=snippet&playlistId=awesome"] = string(bytes)
+
+	ts := getTestServer(responses)
+	youtubeAPIURLBase = ts.URL
+	defer ts.Close()
+	app, writer, _, set := getBaseAppAndFlagSet(t, outputFolder)
+	cb := &commandBuilder.Test{
+		ExpectedCommands: []*commandBuilder.ExpectedCommand{
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+				"video 1 output",
+				0,
+			),
+		},
+	}
+	assert.Nil(t, CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
+	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
+	assert.Equal(t, "video 1 output\n", writer.String())
 }
 
 func getTestPlaylistServerOverrideResponse(URL, response string) *httptest.Server {
@@ -333,55 +377,53 @@ func getTestPlaylistServerOverrideResponse(URL, response string) *httptest.Serve
 
 func getDefaultPlaylistResponses() map[string]string {
 	responses := map[string]string{}
-	playlistInfo := channelResponse{
-		Items: []channelItem{
+	playlistInfo := youtube.PlaylistListResponse{
+		Items: []*youtube.Playlist{
 			{
-				Snippet: map[string]interface{}{
-					"title":       "playlistTitle",
-					"description": "playlistDescription",
+				Snippet: &youtube.PlaylistSnippet{
+					Title:       "playlistTitle",
+					Description: "playlistDescription",
 				},
 			},
 		},
 	}
 	bytes, _ := json.Marshal(playlistInfo)
-	responses["/playlists?key=fakeApiKey&part=snippet&id=awesome&maxResults=1"] = string(bytes)
+	responses["/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet"] = string(bytes)
 
-	playlistVideosPage1 := videoSearchResponse{
+	playlistVideosPage1 := youtube.PlaylistItemListResponse{
 		NextPageToken: "page2",
-		Items: []map[string]interface{}{
+		Items: []*youtube.PlaylistItem{
 			{
-				"snippet": map[string]interface{}{
-					"title":       "t",
-					"description": "d",
-					"publishedAt": "2007-01-02T15:04:05Z",
-					"resourceId": map[string]string{
-						"videoId": "vId1",
+				Snippet: &youtube.PlaylistItemSnippet{
+					Title:       "t",
+					Description: "d",
+					PublishedAt: "2007-01-02T15:04:05Z",
+					ResourceId: &youtube.ResourceId{
+						VideoId: "vId1",
 					},
 				},
-				"id": "someId",
 			},
 		},
 	}
 	bytes, _ = json.Marshal(playlistVideosPage1)
-	responses["/playlistItems?key=fakeApiKey&maxResults=50&part=snippet&playlistId=awesome"] = string(bytes)
+	responses["/playlistItems?alt=json&key=fakeApiKey&part=snippet&playlistId=awesome"] = string(bytes)
 
-	playlistVideosPage2 := videoSearchResponse{
-		Items: []map[string]interface{}{
+	playlistVideosPage2 := youtube.PlaylistItemListResponse{
+		Items: []*youtube.PlaylistItem{
 			{
-				"snippet": map[string]interface{}{
-					"title":       "t2",
-					"description": "d2",
-					"publishedAt": "2006-01-02T15:04:05Z",
-					"resourceId": map[string]string{
-						"videoId": "vId2",
+				Snippet: &youtube.PlaylistItemSnippet{
+					Title:       "t2",
+					Description: "d2",
+					PublishedAt: "2006-01-02T15:04:05Z",
+					ResourceId: &youtube.ResourceId{
+						VideoId: "vId2",
 					},
 				},
-				"id": "someId",
 			},
 		},
 	}
 	bytes, _ = json.Marshal(playlistVideosPage2)
-	responses["/playlistItems?key=fakeApiKey&maxResults=50&part=snippet&playlistId=awesome&pageToken=page2"] = string(bytes)
+	responses["/playlistItems?alt=json&key=fakeApiKey&pageToken=page2&part=snippet&playlistId=awesome"] = string(bytes)
 
 	return responses
 }

@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	youtube "google.golang.org/api/youtube/v3"
+
 	"github.com/guywithnose/commandBuilder"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
@@ -113,9 +115,9 @@ func TestCmdChannelInvalidChannelName(t *testing.T) {
 	defer removeFile(t, outputFolder)
 	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
 	responses := getDefaultChannelResponses()
-	channelInfo := channelResponse{Items: []channelItem{}}
+	channelInfo := youtube.ChannelListResponse{Items: []*youtube.Channel{}}
 	bytes, _ := json.Marshal(channelInfo)
-	responses["/channels?key=fakeApiKey&part=snippet&forUsername=awesome"] = string(bytes)
+	responses["/channels?alt=json&forUsername=awesome&key=fakeApiKey&part=snippet"] = string(bytes)
 	ts := getTestServer(responses)
 	defer ts.Close()
 	youtubeAPIURLBase = ts.URL
@@ -130,23 +132,22 @@ func TestCmdChannelAfter(t *testing.T) {
 	defer removeFile(t, outputFolder)
 	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
 	responses := getDefaultChannelResponses()
-	searchPage1 := videoSearchResponse{
-		Items: []map[string]interface{}{
+	searchPage1 := youtube.SearchListResponse{
+		Items: []*youtube.SearchResult{
 			{
-				"snippet": map[string]string{
-					"title":       "t",
-					"description": "d",
-					"publishedAt": "2007-01-02T15:04:05Z",
+				Snippet: &youtube.SearchResultSnippet{
+					Title:       "t",
+					Description: "d",
+					PublishedAt: "2007-01-02T15:04:05Z",
 				},
-				"id": map[string]string{
-					"kind":    "youtube#video",
-					"videoId": "vId1",
+				Id: &youtube.ResourceId{
+					VideoId: "vId1",
 				},
 			},
 		},
 	}
 	bytes, _ := json.Marshal(searchPage1)
-	responses["/search?channelId=id&key=fakeApiKey&maxResults=50&part=snippet&publishedAfter=2006-07-07T00%3A00%3A00Z&type=video"] = string(bytes)
+	responses["/search?alt=json&channelId=id&key=fakeApiKey&part=snippet&publishedAfter=2006-07-07T00%3A00%3A00Z&type=video"] = string(bytes)
 	ts := getTestServer(responses)
 	defer ts.Close()
 	youtubeAPIURLBase = ts.URL
@@ -195,74 +196,55 @@ func TestCmdChannelAfterInvalidDate(t *testing.T) {
 	ts := getTestServer(getDefaultChannelResponses())
 	defer ts.Close()
 	youtubeAPIURLBase = ts.URL
-	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
+	app, _, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.String("after", "99-99-99", "doc")
 	cb := &commandBuilder.Test{}
-	assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), "Could not parse after date: parsing time \"99-99-99\": month out of range")
+	assert.Nil(t, CmdChannel(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*commandBuilder.ExpectedCommand(nil), cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
-}
-
-func TestCmdChannelServerError(t *testing.T) {
-	runChannelErrorTest(
-		t,
-		"/channels?key=fakeApiKey&part=snippet&forUsername=awesome",
-		"httpError",
-		"Could not connect to %s/channels?key=fakeApiKey&part=snippet&forUsername=awesome: "+
-			"Get htp://notarealhostname.foo: unsupported protocol scheme \"htp\"",
-	)
+	assert.Equal(t, "Could not parse after date: parsing time \"99-99-99\": month out of range\n", errWriter.String())
 }
 
 func TestCmdChannelYoutubeChannelError(t *testing.T) {
-	runChannelErrorTest(
-		t,
-		"/channels?key=fakeApiKey&part=snippet&forUsername=awesome",
-		"error",
-		"EOF",
-	)
-}
-
-func TestCmdChannelYoutubeSearchPage1Error(t *testing.T) {
-	runChannelErrorTest(
-		t,
-		"/search?channelId=id&key=fakeApiKey&maxResults=50&part=snippet&type=video",
-		"error",
-		"EOF",
-	)
-}
-
-func TestCmdChannelYoutubeSearchPage1HttpError(t *testing.T) {
-	runChannelErrorTest(
-		t,
-		"/search?channelId=id&key=fakeApiKey&maxResults=50&part=snippet&type=video",
-		"httpError",
-		"Could not connect to %s/search?channelId=id&key=fakeApiKey&maxResults=50&part=snippet&type=video: "+
-			"Get htp://notarealhostname.foo: unsupported protocol scheme \"htp\"",
-	)
-}
-
-func runChannelErrorTest(t *testing.T, url, errorType, expectedError string) {
 	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
 	defer removeFile(t, outputFolder)
 	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
-	ts := getTestChannelServerOverrideResponse(url, errorType)
+	ts := getTestChannelServerOverrideResponse("/channels?alt=json&forUsername=awesome&key=fakeApiKey&part=snippet", "error")
 	defer ts.Close()
-	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	cb := &commandBuilder.Test{}
-	if errorType == "httpError" {
-		assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), fmt.Sprintf(expectedError, ts.URL))
-	} else {
-		assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), expectedError)
-	}
+	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
+	assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), "Channel request failed: googleapi: got HTTP response code 500 with body: ")
 	assert.Equal(t, []error(nil), cb.Errors)
 }
 
-func TestCmdChannelYoutubeSearchPage2Error(t *testing.T) {
-	runChannelErrorTest(
+func TestCmdChannelYoutubeSearchPage1Error(t *testing.T) {
+	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=id&key=fakeApiKey&part=snippet&type=video", "error")
+	defer ts.Close()
+	runErrorTest(
 		t,
-		"/search?channelId=id&key=fakeApiKey&maxResults=50&part=snippet&type=video&pageToken=page2",
-		"error",
-		"EOF",
+		"Search request failed: googleapi: got HTTP response code 500 with body: \n",
+		&commandBuilder.Test{},
+		CmdChannel,
+	)
+}
+
+func TestCmdChannelYoutubeSearchPage2Error(t *testing.T) {
+	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=id&key=fakeApiKey&pageToken=page2&part=snippet&type=video", "error")
+	defer ts.Close()
+	runErrorTest(
+		t,
+		"Search request failed: googleapi: got HTTP response code 500 with body: \n",
+		&commandBuilder.Test{
+			ExpectedCommands: []*commandBuilder.ExpectedCommand{
+				commandBuilder.NewExpectedCommand(
+					"",
+					"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+					"video 1 output",
+					0,
+				),
+			},
+		},
+		CmdChannel,
 	)
 }
 
@@ -271,90 +253,45 @@ func TestCmdChannelYoutubeSearchInvalidVideos(t *testing.T) {
 	defer removeFile(t, outputFolder)
 	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
 	responses := getDefaultChannelResponses()
-	searchPage1 := videoSearchResponse{
-		Items: []map[string]interface{}{
+	searchPage1 := youtube.SearchListResponse{
+		Items: []*youtube.SearchResult{
 			{
-				"snippet": map[string]string{
-					"title":       "t2",
-					"description": "d2",
-					"publishedAt": "2006-01-02T15:04:05Z",
+				Snippet: &youtube.SearchResultSnippet{
+					Title:       "t",
+					Description: "d",
+					PublishedAt: "2007-01-02T15:04:05Z",
 				},
-				"id": map[string]string{
-					"kind":    "youtube#notvideo",
-					"videoId": "vId2",
+				Id: &youtube.ResourceId{
+					VideoId: "vId1",
 				},
 			},
 			{
-				"snippet": map[string]string{
-					"description": "d2",
-					"publishedAt": "2006-01-02T15:04:05Z",
+				Snippet: &youtube.SearchResultSnippet{
+					Title:       "t2",
+					Description: "d2",
+					PublishedAt: "2006-01-02T15:04:05Z",
 				},
-				"id": map[string]string{
-					"kind":    "youtube#video",
-					"videoId": "vId2",
-				},
-			},
-			{
-				"snippet": map[string]string{
-					"title":       "t2",
-					"publishedAt": "2006-01-02T15:04:05Z",
-				},
-				"id": map[string]string{
-					"kind":    "youtube#video",
-					"videoId": "vId2",
+				Id: &youtube.ResourceId{
+					VideoId: "",
 				},
 			},
 			{
-				"snippet": map[string]string{
-					"title":       "t2",
-					"description": "d2",
+				Snippet: &youtube.SearchResultSnippet{
+					Title:       "t2",
+					Description: "d2",
+					PublishedAt: "2006-01-02",
 				},
-				"id": map[string]string{
-					"kind":    "youtube#video",
-					"videoId": "vId2",
-				},
-			},
-			{
-				"snippet": map[string]string{
-					"title":       "t2",
-					"description": "d2",
-					"publishedAt": "2006-01-02",
-				},
-				"id": map[string]string{
-					"kind":    "youtube#video",
-					"videoId": "vId2",
-				},
-			},
-			{
-				"snippet": map[string]string{
-					"title":       "t2",
-					"description": "d2",
-					"publishedAt": "2006-01-02T15:04:05Z",
-				},
-				"id": map[string]string{
-					"kind":    "youtube#video",
-					"videoId": "",
-				},
-			},
-			{
-				"snippet": map[string]string{
-					"title":       "t",
-					"description": "d",
-					"publishedAt": "2007-01-02T15:04:05Z",
-				},
-				"id": map[string]string{
-					"kind":    "youtube#video",
-					"videoId": "vId1",
+				Id: &youtube.ResourceId{
+					VideoId: "vId1",
 				},
 			},
 		},
 	}
 	bytes, _ := json.Marshal(searchPage1)
-	responses["/search?channelId=id&key=fakeApiKey&maxResults=50&part=snippet&type=video"] = string(bytes)
+	responses["/search?alt=json&channelId=id&key=fakeApiKey&part=snippet&type=video"] = string(bytes)
 	ts := getTestServer(responses)
 	youtubeAPIURLBase = ts.URL
 	defer ts.Close()
-	app, writer, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	cb := &commandBuilder.Test{
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
 			commandBuilder.NewExpectedCommand(
@@ -365,6 +302,7 @@ func TestCmdChannelYoutubeSearchInvalidVideos(t *testing.T) {
 			),
 		},
 	}
+	app, writer, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	assert.Nil(t, CmdChannel(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -381,56 +319,53 @@ func getTestChannelServerOverrideResponse(URL, response string) *httptest.Server
 
 func getDefaultChannelResponses() map[string]string {
 	responses := map[string]string{}
-	searchPage1 := videoSearchResponse{
+	searchPage1 := youtube.SearchListResponse{
 		NextPageToken: "page2",
-		Items: []map[string]interface{}{
+		Items: []*youtube.SearchResult{
 			{
-				"snippet": map[string]string{
-					"title":       "t",
-					"description": "d",
-					"publishedAt": "2007-01-02T15:04:05Z",
+				Snippet: &youtube.SearchResultSnippet{
+					Title:       "t",
+					Description: "d",
+					PublishedAt: "2007-01-02T15:04:05Z",
 				},
-				"id": map[string]string{
-					"kind":    "youtube#video",
-					"videoId": "vId1",
+				Id: &youtube.ResourceId{
+					VideoId: "vId1",
 				},
 			},
 		},
 	}
 	bytes, _ := json.Marshal(searchPage1)
-	responses["/search?channelId=id&key=fakeApiKey&maxResults=50&part=snippet&type=video"] = string(bytes)
+	responses["/search?alt=json&channelId=id&key=fakeApiKey&part=snippet&type=video"] = string(bytes)
 
-	searchPage2 := videoSearchResponse{
-		NextPageToken: "",
-		Items: []map[string]interface{}{
+	searchPage2 := youtube.SearchListResponse{
+		Items: []*youtube.SearchResult{
 			{
-				"snippet": map[string]string{
-					"title":       "t2",
-					"description": "d2",
-					"publishedAt": "2006-01-02T15:04:05Z",
+				Snippet: &youtube.SearchResultSnippet{
+					Title:       "t2",
+					Description: "d2",
+					PublishedAt: "2006-01-02T15:04:05Z",
 				},
-				"id": map[string]string{
-					"kind":    "youtube#video",
-					"videoId": "vId2",
+				Id: &youtube.ResourceId{
+					VideoId: "vId2",
 				},
 			},
 		},
 	}
 	bytes, _ = json.Marshal(searchPage2)
-	responses["/search?channelId=id&key=fakeApiKey&maxResults=50&part=snippet&type=video&pageToken=page2"] = string(bytes)
+	responses["/search?alt=json&channelId=id&key=fakeApiKey&pageToken=page2&part=snippet&type=video"] = string(bytes)
 
-	channelInfo := channelResponse{
-		Items: []channelItem{
+	channelInfo := youtube.ChannelListResponse{
+		Items: []*youtube.Channel{
 			{
-				Snippet: map[string]interface{}{
-					"title":       "t",
-					"description": "d",
+				Snippet: &youtube.ChannelSnippet{
+					Title:       "t",
+					Description: "d",
 				},
-				ID: "id",
+				Id: "id",
 			},
 		},
 	}
 	bytes, _ = json.Marshal(channelInfo)
-	responses["/channels?key=fakeApiKey&part=snippet&forUsername=awesome"] = string(bytes)
+	responses["/channels?alt=json&forUsername=awesome&key=fakeApiKey&part=snippet"] = string(bytes)
 	return responses
 }

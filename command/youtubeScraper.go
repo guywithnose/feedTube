@@ -1,228 +1,171 @@
 package command
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
+
+	"google.golang.org/api/googleapi/transport"
+	youtube "google.golang.org/api/youtube/v3"
 
 	"github.com/kennygrant/sanitize"
 )
 
-var youtubeAPIURLBase = "https://www.googleapis.com/youtube/v3"
-
-type videoSearchResponse struct {
-	NextPageToken string                   `json:"nextPageToken"`
-	Items         []map[string]interface{} `json:"items"`
-}
-
-type channelResponse struct {
-	Items []channelItem `json:"items"`
-}
-
-type channelItem struct {
-	ID      string                 `json:"id"`
-	Snippet map[string]interface{} `json:"snippet"`
-}
+var youtubeAPIURLBase = "https://www.googleapis.com/youtube/v3/"
 
 // getVideosForChannel returns an array of all the youtube video ids on a channel
-func getVideosForChannel(apiKey, channelName, after string, writer io.Writer) ([]Video, *FeedInfo, error) {
+func getVideosForChannel(apiKey, channelName, after string, writer io.Writer) (<-chan *Video, *FeedInfo, error) {
 	channelID, info, err := getChannelIDFromName(apiKey, channelName)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	searchParams := url.Values{}
-	searchParams["key"] = []string{apiKey}
-	searchParams["part"] = []string{"snippet"}
-	searchParams["channelId"] = []string{channelID}
-	searchParams["maxResults"] = []string{"50"}
-	searchParams["type"] = []string{"video"}
-	if after != "" {
-		afterTime, timeParseErr := time.Parse("01-02-06", after)
-		if timeParseErr != nil {
-			return nil, nil, fmt.Errorf("Could not parse after date: %v", timeParseErr)
+	videos := make(chan *Video, 10)
+	go func() {
+		defer close(videos)
+		youtubeService := getYoutubeService(apiKey)
+		listCall := youtubeService.Search.List("snippet").ChannelId(channelID).Type("video")
+		if after != "" {
+			afterTime, timeParseErr := time.Parse("01-02-06", after)
+			if timeParseErr != nil {
+				fmt.Fprintf(writer, "Could not parse after date: %v\n", timeParseErr)
+				return
+			}
+
+			listCall = listCall.PublishedAfter(afterTime.Format(time.RFC3339))
 		}
 
-		searchParams["publishedAfter"] = []string{afterTime.Format(time.RFC3339)}
-	}
-
-	url := fmt.Sprintf("%s/search?%s", youtubeAPIURLBase, searchParams.Encode())
-	nextPageToken, videos, err := runRequest("", url, writer)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var newVideos []Video
-	for nextPageToken != "" {
-		nextPageToken, newVideos, err = runRequest(nextPageToken, url, writer)
+		resp, err := listCall.Do()
 		if err != nil {
-			return nil, nil, err
+			fmt.Fprintf(writer, "Search request failed: %v\n", err)
+			return
 		}
 
-		videos = append(videos, newVideos...)
-	}
+		parseSearchResults(resp.Items, videos, writer)
+
+		for resp.NextPageToken != "" {
+			listCall = listCall.PageToken(resp.NextPageToken)
+			resp, err = listCall.Do()
+			if err != nil {
+				fmt.Fprintf(writer, "Search request failed: %v\n", err)
+				return
+			}
+
+			parseSearchResults(resp.Items, videos, writer)
+		}
+	}()
 
 	return videos, info, nil
 }
 
+func parseSearchResults(results []*youtube.SearchResult, videos chan<- *Video, errWriter io.Writer) {
+	for _, result := range results {
+		publishedTime, err := time.Parse(time.RFC3339, result.Snippet.PublishedAt)
+		if err != nil {
+			fmt.Fprintf(errWriter, "error parsing publish date on video %s: %v\n", result.Id.VideoId, err)
+			continue
+		}
+
+		videos <- &Video{
+			ID:          result.Id.VideoId,
+			Title:       result.Snippet.Title,
+			Description: result.Snippet.Description,
+			Published:   publishedTime,
+			Filename:    fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(result.Snippet.Title), " ", "-", -1), result.Id.VideoId),
+		}
+	}
+}
+
+func parsePlaylistItems(results []*youtube.PlaylistItem, videos chan<- *Video, errWriter io.Writer) {
+	for _, result := range results {
+		publishedTime, err := time.Parse(time.RFC3339, result.Snippet.PublishedAt)
+		if err != nil {
+			fmt.Fprintf(errWriter, "error parsing publish date on video %s: %v\n", result.Snippet.ResourceId.VideoId, err)
+			continue
+		}
+
+		videos <- &Video{
+			ID:          result.Snippet.ResourceId.VideoId,
+			Title:       result.Snippet.Title,
+			Description: result.Snippet.Description,
+			Published:   publishedTime,
+			Filename:    fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(result.Snippet.Title), " ", "-", -1), result.Snippet.ResourceId.VideoId),
+		}
+	}
+}
+
 // getVideosForPlaylist returns an array of all the youtube video ids in a playlist
-func getVideosForPlaylist(apiKey, playlistID string, writer io.Writer) ([]Video, *FeedInfo, error) {
+func getVideosForPlaylist(apiKey, playlistID string, writer io.Writer) (<-chan *Video, *FeedInfo, error) {
 	info, err := getPlaylistInfo(apiKey, playlistID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	searchParams := url.Values{}
-	searchParams["key"] = []string{apiKey}
-	searchParams["part"] = []string{"snippet"}
-	searchParams["playlistId"] = []string{playlistID}
-	searchParams["maxResults"] = []string{"50"}
-
-	url := fmt.Sprintf("%s/playlistItems?%s", youtubeAPIURLBase, searchParams.Encode())
-	nextPageToken, videos, err := runRequest("", url, writer)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var newVideos []Video
-	for nextPageToken != "" {
-		nextPageToken, newVideos, err = runRequest(nextPageToken, url, writer)
+	videos := make(chan *Video, 10)
+	go func() {
+		defer close(videos)
+		youtubeService := getYoutubeService(apiKey)
+		listCall := youtubeService.PlaylistItems.List("snippet").PlaylistId(playlistID)
+		resp, err := listCall.Do()
 		if err != nil {
-			return nil, nil, err
+			fmt.Fprintf(writer, "Playlist items request failed: %v\n", err)
+			return
 		}
 
-		videos = append(videos, newVideos...)
-	}
+		parsePlaylistItems(resp.Items, videos, writer)
+		for resp.NextPageToken != "" {
+			listCall = listCall.PageToken(resp.NextPageToken)
+			resp, err = listCall.Do()
+			if err != nil {
+				fmt.Fprintf(writer, "Playlist items request failed: %v\n", err)
+				return
+			}
+
+			parsePlaylistItems(resp.Items, videos, writer)
+		}
+	}()
 
 	return videos, info, nil
 }
 
 func getChannelIDFromName(apiKey, channelName string) (string, *FeedInfo, error) {
-	url := fmt.Sprintf("%s/channels?key=%s&part=snippet&forUsername=%s", youtubeAPIURLBase, apiKey, channelName)
-	resp, err := http.Get(url)
+	youtubeService := getYoutubeService(apiKey)
+	listCall := youtubeService.Channels.List("snippet").ForUsername(channelName)
+	resp, err := listCall.Do()
 	if err != nil {
-		return "", nil, fmt.Errorf("Could not connect to %s: %v", url, err)
+		return "", nil, fmt.Errorf("Channel request failed: %v", err)
 	}
 
-	var body channelResponse
-
-	err = json.NewDecoder(resp.Body).Decode(&body)
-	if err != nil {
-		return "", nil, err
-	}
-
-	if len(body.Items) == 0 {
+	if len(resp.Items) == 0 {
 		return "", nil, fmt.Errorf("channel %s not found", channelName)
 	}
 
-	item := body.Items[0]
-	title, _ := item.Snippet["title"].(string)
-	description, _ := item.Snippet["description"].(string)
-
-	return item.ID, &FeedInfo{Title: title, Description: description}, nil
+	return resp.Items[0].Id, &FeedInfo{Title: resp.Items[0].Snippet.Title, Description: resp.Items[0].Snippet.Description}, nil
 }
 
 func getPlaylistInfo(apiKey, playlistID string) (*FeedInfo, error) {
-	url := fmt.Sprintf("%s/playlists?key=%s&part=snippet&id=%s&maxResults=1", youtubeAPIURLBase, apiKey, playlistID)
-	resp, err := http.Get(url)
+	youtubeService := getYoutubeService(apiKey)
+	listCall := youtubeService.Playlists.List("snippet").Id(playlistID)
+	resp, err := listCall.Do()
 	if err != nil {
-		return nil, fmt.Errorf("Could not connect to %s: %v", url, err)
+		return nil, fmt.Errorf("Playlist request failed: %v", err)
 	}
 
-	var body channelResponse
-
-	err = json.NewDecoder(resp.Body).Decode(&body)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(body.Items) == 0 {
+	if len(resp.Items) == 0 {
 		return nil, fmt.Errorf("playlist %s not found", playlistID)
 	}
 
-	item := body.Items[0]
-	title, _ := item.Snippet["title"].(string)
-	description, _ := item.Snippet["description"].(string)
-
-	return &FeedInfo{Title: title, Description: description}, nil
+	return &FeedInfo{Title: resp.Items[0].Snippet.Title, Description: resp.Items[0].Snippet.Description}, nil
 }
 
-func runRequest(pageToken, url string, writer io.Writer) (string, []Video, error) {
-	if pageToken != "" {
-		url = fmt.Sprintf(url+"&pageToken=%s", pageToken)
+func getYoutubeService(apiKey string) *youtube.Service {
+	client := &http.Client{
+		Transport: &transport.APIKey{Key: apiKey},
 	}
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", nil, fmt.Errorf("Could not connect to %s: %v", url, err)
-	}
-
-	defer resp.Body.Close()
-	var body videoSearchResponse
-
-	err = json.NewDecoder(resp.Body).Decode(&body)
-	if err != nil {
-		return "", nil, err
-	}
-
-	videos := make([]Video, 0, 50)
-	for _, item := range body.Items {
-		video, err := parseVideoItem(item)
-		if err != nil {
-			fmt.Fprintln(writer, err)
-			continue
-		}
-
-		videos = append(videos, *video)
-	}
-
-	return body.NextPageToken, videos, nil
-}
-
-func parseVideoItem(item map[string]interface{}) (*Video, error) {
-	snippet := item["snippet"].(map[string]interface{})
-	title, ok := snippet["title"].(string)
-	rootID := item["id"]
-	var id map[string]interface{}
-	switch rid := rootID.(type) {
-	case map[string]interface{}:
-		id = rid
-		if rid["kind"] != "youtube#video" {
-			return nil, errors.New("Not a video item")
-		}
-	case string:
-		id = snippet["resourceId"].(map[string]interface{})
-	}
-
-	if !ok {
-		return nil, fmt.Errorf("title not set on video %s", id)
-	}
-
-	description, ok := snippet["description"].(string)
-	if !ok {
-		return nil, fmt.Errorf("description not set on video %s", id)
-	}
-
-	publishedAt, ok := snippet["publishedAt"].(string)
-	if !ok {
-		return nil, fmt.Errorf("published Date not set on video %s", id)
-	}
-
-	publishedTime, err := time.Parse(time.RFC3339, publishedAt)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing publish date on video %s", id)
-	}
-
-	return &Video{
-		ID:          id["videoId"].(string),
-		Title:       title,
-		Description: description,
-		Published:   publishedTime,
-		Filename:    fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(title), " ", "-", -1), id["videoId"].(string)),
-	}, nil
+	service, _ := youtube.New(client)
+	// Only for testing
+	service.BasePath = youtubeAPIURLBase
+	return service
 }

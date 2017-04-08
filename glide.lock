@@ -1,5 +1,5 @@
-hash: f89ede10983609f88a4e08316bc557658c4c98edde9a51f818d8d13c52e87303
-updated: 2017-04-07T00:53:42.318184015-04:00
+hash: 540438f404420a17259e9756c68a0ae0a859c031131b618c16c7ce1fb9f2d54b
+updated: 2017-04-08T09:43:05.181029288-04:00
 imports:
 - name: github.com/guywithnose/commandBuilder
   version: 72671e92f93f868498562b56fdf6ad43047e010c
@@ -16,6 +16,10 @@ imports:
   subpackages:
   - html
   - html/atom
+- name: google.golang.org/api
+  version: 48e49d1645e228d1c50c3d54fb476b2224477303
+  subpackages:
+  - youtube/v1
 testImports:
 - name: github.com/davecgh/go-spew
   version: 346938d642f2ec3594ed81d874461961cd0faa76

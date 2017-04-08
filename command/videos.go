@@ -12,14 +12,21 @@ import (
 )
 
 // CmdBuild builds the hostfile from a configuration file
-func handleVideos(c *cli.Context, videos []Video, feedInfo *FeedInfo, outputFolder, xmlFile, baseURL string, cmdBuilder commandBuilder.Builder) error {
+func handleVideos(c *cli.Context, videos <-chan *Video, feedInfo *FeedInfo, outputFolder, xmlFile, baseURL string, cmdBuilder commandBuilder.Builder) error {
 	filter := c.String("filter")
 
-	if filter != "" {
-		videos = filterVideos(videos, filter)
-	}
+	rssVideos := make([]*Video, 0)
+	for video := range videos {
+		if (filter != "" && !strings.Contains(video.Title, filter)) || video.ID == "" {
+			continue
+		}
 
-	downloadVideos(videos, outputFolder, cmdBuilder, c.App.Writer)
+		if _, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, video.Filename)); os.IsNotExist(err) {
+			downloadVideo(outputFolder, video.ID, video.Filename, cmdBuilder, c.App.Writer)
+		}
+
+		rssVideos = append(rssVideos, video)
+	}
 
 	if xmlFile == "" {
 		return nil
@@ -29,35 +36,12 @@ func handleVideos(c *cli.Context, videos []Video, feedInfo *FeedInfo, outputFold
 		return cli.NewExitError("You must specify an baseURL", 1)
 	}
 
-	rss := buildRssFile(videos, baseURL, *feedInfo)
+	rss := buildRssFile(rssVideos, baseURL, *feedInfo)
 
 	return ioutil.WriteFile(xmlFile, rss, 0644)
 }
 
-func downloadVideos(videos []Video, outputFolder string, cmdBuilder commandBuilder.Builder, w io.Writer) {
-	for _, video := range videos {
-		if video.ID == "" {
-			continue
-		}
-
-		if _, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, video.Filename)); os.IsNotExist(err) {
-			downloadVideo(outputFolder, video.ID, video.Filename, cmdBuilder, w)
-		}
-	}
-}
-
-func filterVideos(videos []Video, filter string) []Video {
-	filteredVideos := make([]Video, 0, len(videos))
-	for _, video := range videos {
-		if strings.Contains(video.Title, filter) {
-			filteredVideos = append(filteredVideos, video)
-		}
-	}
-
-	return filteredVideos
-}
-
-func downloadVideo(outputFolder, videoID, fileName string, cmdBuilder commandBuilder.Builder, w io.Writer) {
+func downloadVideo(outputFolder, videoID, fileName string, cmdBuilder commandBuilder.Builder, w io.Writer) bool {
 	params := []string{
 		"/usr/bin/youtube-dl",
 		"-x",
@@ -75,5 +59,8 @@ func downloadVideo(outputFolder, videoID, fileName string, cmdBuilder commandBui
 	fmt.Fprintln(w, string(out))
 	if err != nil {
 		fmt.Fprintf(w, "Could not download %s: %v\nParams: '%s'\n", fileName, err, strings.Join(params, "' '"))
+		return false
 	}
+
+	return true
 }
