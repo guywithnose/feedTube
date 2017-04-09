@@ -1,23 +1,29 @@
 package command
 
-import "github.com/urfave/cli"
+import (
+	"github.com/guywithnose/commandBuilder"
+	"github.com/urfave/cli"
+)
 
 // CmdPlaylist builds an rss feed from a youtube playlist
-func CmdPlaylist(c *cli.Context) error {
-	if c.NArg() != 1 {
-		return cli.NewExitError("Usage: \"feedTube playlist {playlistID}\"", 1)
-	}
+func CmdPlaylist(cmdBuilder commandBuilder.Builder) func(c *cli.Context) error {
+	return func(c *cli.Context) error {
+		if c.NArg() != 1 {
+			return cli.NewExitError("Usage: \"feedTube playlist {playlistID}\"", 1)
+		}
 
-	apiKey := c.String("apiKey")
-	if apiKey == "" {
-		return cli.NewExitError("You must specify an apiKey", 1)
-	}
-	playlistID := c.Args().Get(0)
+		outputFolder, apiKey, err := checkFlags(c)
+		if err != nil {
+			return err
+		}
 
-	videos, channel, err := getVideosForPlaylist(apiKey, playlistID, c.App.ErrWriter)
-	if err != nil {
-		return err
-	}
+		playlistID := c.Args().Get(0)
 
-	return handleVideos(c, videos, channel)
+		videos, channel, err := getVideosForPlaylist(apiKey, playlistID, c.App.ErrWriter)
+		if err != nil {
+			return err
+		}
+
+		return handleVideos(c, videos, channel, outputFolder, c.String("xmlFile"), c.String("baseURL"), cmdBuilder)
+	}
 }

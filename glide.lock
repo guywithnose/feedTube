@@ -1,13 +1,27 @@
-hash: e44865821e290f4ae72111991467b2f861a825c6813affff5d564b1fd356e95a
-updated: 2017-03-06T00:18:03.663711128-05:00
+hash: f89ede10983609f88a4e08316bc557658c4c98edde9a51f818d8d13c52e87303
+updated: 2017-04-07T00:53:42.318184015-04:00
 imports:
+- name: github.com/guywithnose/commandBuilder
+  version: 72671e92f93f868498562b56fdf6ad43047e010c
 - name: github.com/kennygrant/sanitize
   version: 6a0bfdde8629a3a3a7418a7eae45c54154692514
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  subpackages:
+  - assert
 - name: github.com/urfave/cli
   version: 0bdeddeeb0f650497d603c4ad7b20cfe685682f6
 - name: golang.org/x/net
-  version: d379faa25cbdc04d653984913a2ceb43b0bc46d7
+  version: ffcf1bedda3b04ebb15a168a59800a73d6dc0f4d
   subpackages:
   - html
   - html/atom
-testImports: []
+testImports:
+- name: github.com/davecgh/go-spew
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib

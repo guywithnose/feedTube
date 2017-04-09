@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/kennygrant/sanitize"
 )
+
+var youtubeAPIURLBase = "https://www.googleapis.com/youtube/v3"
 
 type videoSearchResponse struct {
 	NextPageToken string                   `json:"nextPageToken"`
@@ -27,13 +30,28 @@ type channelItem struct {
 }
 
 // getVideosForChannel returns an array of all the youtube video ids on a channel
-func getVideosForChannel(apiKey, channelName string, writer io.Writer) ([]Video, *FeedInfo, error) {
+func getVideosForChannel(apiKey, channelName, after string, writer io.Writer) ([]Video, *FeedInfo, error) {
 	channelID, info, err := getChannelIDFromName(apiKey, channelName)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	url := fmt.Sprintf("https://www.googleapis.com/youtube/v3/search?key=%s&part=snippet&channelId=%s&maxResults=50&type=video", apiKey, channelID)
+	searchParams := url.Values{}
+	searchParams["key"] = []string{apiKey}
+	searchParams["part"] = []string{"snippet"}
+	searchParams["channelId"] = []string{channelID}
+	searchParams["maxResults"] = []string{"50"}
+	searchParams["type"] = []string{"video"}
+	if after != "" {
+		afterTime, timeParseErr := time.Parse("01-02-06", after)
+		if timeParseErr != nil {
+			return nil, nil, fmt.Errorf("Could not parse after date: %v", timeParseErr)
+		}
+
+		searchParams["publishedAfter"] = []string{afterTime.Format(time.RFC3339)}
+	}
+
+	url := fmt.Sprintf("%s/search?%s", youtubeAPIURLBase, searchParams.Encode())
 	nextPageToken, videos, err := runRequest("", url, writer)
 	if err != nil {
 		return nil, nil, err
@@ -59,7 +77,13 @@ func getVideosForPlaylist(apiKey, playlistID string, writer io.Writer) ([]Video,
 		return nil, nil, err
 	}
 
-	url := fmt.Sprintf("https://www.googleapis.com/youtube/v3/playlistItems?key=%s&part=snippet&playlistId=%s&maxResults=50", apiKey, playlistID)
+	searchParams := url.Values{}
+	searchParams["key"] = []string{apiKey}
+	searchParams["part"] = []string{"snippet"}
+	searchParams["playlistId"] = []string{playlistID}
+	searchParams["maxResults"] = []string{"50"}
+
+	url := fmt.Sprintf("%s/playlistItems?%s", youtubeAPIURLBase, searchParams.Encode())
 	nextPageToken, videos, err := runRequest("", url, writer)
 	if err != nil {
 		return nil, nil, err
@@ -79,10 +103,10 @@ func getVideosForPlaylist(apiKey, playlistID string, writer io.Writer) ([]Video,
 }
 
 func getChannelIDFromName(apiKey, channelName string) (string, *FeedInfo, error) {
-	url := fmt.Sprintf("https://www.googleapis.com/youtube/v3/channels?key=%s&part=snippet&forUsername=%s", apiKey, channelName)
+	url := fmt.Sprintf("%s/channels?key=%s&part=snippet&forUsername=%s", youtubeAPIURLBase, apiKey, channelName)
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", nil, err
+		return "", nil, fmt.Errorf("Could not connect to %s: %v", url, err)
 	}
 
 	var body channelResponse
@@ -104,10 +128,10 @@ func getChannelIDFromName(apiKey, channelName string) (string, *FeedInfo, error)
 }
 
 func getPlaylistInfo(apiKey, playlistID string) (*FeedInfo, error) {
-	url := fmt.Sprintf("https://www.googleapis.com/youtube/v3/playlists?key=%s&part=snippet&id=%s&maxResults=1", apiKey, playlistID)
+	url := fmt.Sprintf("%s/playlists?key=%s&part=snippet&id=%s&maxResults=1", youtubeAPIURLBase, apiKey, playlistID)
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Could not connect to %s: %v", url, err)
 	}
 
 	var body channelResponse
@@ -118,7 +142,6 @@ func getPlaylistInfo(apiKey, playlistID string) (*FeedInfo, error) {
 	}
 
 	if len(body.Items) == 0 {
-		fmt.Println(url)
 		return nil, fmt.Errorf("playlist %s not found", playlistID)
 	}
 
@@ -136,9 +159,10 @@ func runRequest(pageToken, url string, writer io.Writer) (string, []Video, error
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", nil, err
+		return "", nil, fmt.Errorf("Could not connect to %s: %v", url, err)
 	}
 
+	defer resp.Body.Close()
 	var body videoSearchResponse
 
 	err = json.NewDecoder(resp.Body).Decode(&body)
@@ -191,7 +215,7 @@ func parseVideoItem(item map[string]interface{}) (*Video, error) {
 
 	publishedTime, err := time.Parse(time.RFC3339, publishedAt)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing publidh date on video %s", id)
+		return nil, fmt.Errorf("error parsing publish date on video %s", id)
 	}
 
 	return &Video{

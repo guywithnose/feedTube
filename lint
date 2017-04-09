@@ -1,0 +1,28 @@
+#!/bin/bash
+gometalinter --install --update > /dev/null
+gometalinter --vendored-linters \
+    --exclude '^vendor' \
+    --disable-all \
+    --enable aligncheck \
+    --enable deadcode \
+    --enable dupl --dupl-threshold=100 \
+    --enable errcheck --exclude 'error return value not checked \(defer.*Close.*errcheck' \
+    --enable goconst \
+    --enable gocyclo \
+    --enable gofmt \
+    --enable golint \
+    --enable gosimple \
+    --enable ineffassign \
+    --enable interfacer \
+    --enable lll --line-length=160 \
+    --enable misspell \
+    --enable staticcheck \
+    --enable structcheck \
+    --enable unconvert \
+    --enable unparam \
+    --enable unused \
+    --enable varcheck \
+    --enable vet \
+    --enable vetshadow \
+    --deadline=60s \
+    command

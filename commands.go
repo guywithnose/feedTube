@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/guywithnose/commandBuilder"
 	"github.com/guywithnose/feedTube/command"
 	"github.com/urfave/cli"
 )
@@ -30,10 +31,6 @@ var flags = []cli.Flag{
 		Name:  "baseURL, b",
 		Usage: "The base URL to access the output folder",
 	},
-	cli.StringFlag{
-		Name:  "after",
-		Usage: "Only process videos after a given date",
-	},
 }
 
 // Commands defines the commands that can be called on hostBuilder
@@ -42,14 +39,20 @@ var Commands = []cli.Command{
 		Name:    "channel",
 		Aliases: []string{"c"},
 		Usage:   "Builds your rss file from a youtube channel",
-		Action:  command.CmdChannel,
-		Flags:   flags,
+		Action:  command.CmdChannel(commandBuilder.Real{}),
+		Flags: append(
+			flags,
+			cli.StringFlag{
+				Name:  "after",
+				Usage: "Only process videos after a given date",
+			},
+		),
 	},
 	{
 		Name:    "playlist",
 		Aliases: []string{"p"},
 		Usage:   "Builds your rss file from a youtube playlist",
-		Action:  command.CmdPlaylist,
+		Action:  command.CmdPlaylist(commandBuilder.Real{}),
 		Flags:   flags,
 	},
 }
@@ -61,7 +64,7 @@ func CommandNotFound(c *cli.Context, command string) {
 }
 
 // RootCompletion prints the list of root commands as the root completion method
-// This is similar to the deafult method, but it excludes aliases
+// This is similar to the default method, but it excludes aliases
 func RootCompletion(c *cli.Context) {
 	for _, command := range c.App.Commands {
 		if command.Hidden {

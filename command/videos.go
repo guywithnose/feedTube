@@ -2,66 +2,46 @@ package command
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
-	"log"
 	"os"
-	"os/exec"
 	"strings"
-	"time"
 
+	"github.com/guywithnose/commandBuilder"
 	"github.com/urfave/cli"
 )
 
 // CmdBuild builds the hostfile from a configuration file
-func handleVideos(c *cli.Context, videos []Video, feedInfo *FeedInfo) error {
+func handleVideos(c *cli.Context, videos []Video, feedInfo *FeedInfo, outputFolder, xmlFile, baseURL string, cmdBuilder commandBuilder.Builder) error {
 	filter := c.String("filter")
-	after := c.String("after")
-	outputFolder := c.String("outputFolder")
-	if outputFolder == "" {
-		return cli.NewExitError("You must specify an outputFolder", 1)
-	}
 
 	if filter != "" {
 		videos = filterVideos(videos, filter)
 	}
 
-	if after != "" {
-		afterTime, err := time.Parse("01-02-06", after)
-		if err != nil {
-			return err
-		}
+	downloadVideos(videos, outputFolder, cmdBuilder, c.App.Writer)
 
-		videos = videosAfter(videos, afterTime)
-	}
-
-	downloadVideos(videos, outputFolder)
-
-	xmlFile := c.String("xmlFile")
 	if xmlFile == "" {
 		return nil
 	}
 
-	baseURL := c.String("baseURL")
 	if baseURL == "" {
 		return cli.NewExitError("You must specify an baseURL", 1)
 	}
 
-	rss, err := buildRssFile(videos, baseURL, *feedInfo)
-	if err != nil {
-		return err
-	}
+	rss := buildRssFile(videos, baseURL, *feedInfo)
 
 	return ioutil.WriteFile(xmlFile, rss, 0644)
 }
 
-func downloadVideos(videos []Video, outputFolder string) {
+func downloadVideos(videos []Video, outputFolder string, cmdBuilder commandBuilder.Builder, w io.Writer) {
 	for _, video := range videos {
 		if video.ID == "" {
 			continue
 		}
 
 		if _, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, video.Filename)); os.IsNotExist(err) {
-			downloadVideo(outputFolder, video.ID, video.Filename)
+			downloadVideo(outputFolder, video.ID, video.Filename, cmdBuilder, w)
 		}
 	}
 }
@@ -77,19 +57,23 @@ func filterVideos(videos []Video, filter string) []Video {
 	return filteredVideos
 }
 
-func videosAfter(videos []Video, after time.Time) []Video {
-	filteredVideos := make([]Video, 0, len(videos))
-	for _, video := range videos {
-		if video.Published.After(after) {
-			filteredVideos = append(filteredVideos, video)
-		}
+func downloadVideo(outputFolder, videoID, fileName string, cmdBuilder commandBuilder.Builder, w io.Writer) {
+	params := []string{
+		"/usr/bin/youtube-dl",
+		"-x",
+		"--audio-format",
+		"mp3",
+		"-o",
+		fmt.Sprintf("%s/%s.%%(ext)s", outputFolder, fileName),
+		fmt.Sprintf("https://youtu.be/%s", videoID),
 	}
-
-	return filteredVideos
-}
-
-func downloadVideo(outputFolder, videoID, fileName string) {
-	out, err := exec.Command("/usr/bin/youtube-dl", "-x", "--audio-format", "mp3", "-o", fmt.Sprintf("%s/%s.%%(ext)s", outputFolder, fileName), videoID).Output()
-	log.Println(string(out))
-	log.Println(err)
+	cmd := cmdBuilder.CreateCommand(
+		"",
+		params...,
+	)
+	out, err := cmd.CombinedOutput()
+	fmt.Fprintln(w, string(out))
+	if err != nil {
+		fmt.Fprintf(w, "Could not download %s: %v\nParams: '%s'\n", fileName, err, strings.Join(params, "' '"))
+	}
 }
