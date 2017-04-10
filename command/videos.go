@@ -78,6 +78,8 @@ func downloadVideo(outputFolder, videoID, fileName string, cmdBuilder commandBui
 		"-x",
 		"--audio-format",
 		"mp3",
+		"--audio-quality",
+		"0",
 		"-o",
 		fmt.Sprintf("%s/%s.%%(ext)s", outputFolder, fileName),
 		fmt.Sprintf("https://youtu.be/%s", videoID),

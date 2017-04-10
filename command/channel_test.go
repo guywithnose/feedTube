@@ -29,13 +29,13 @@ func TestCmdChannel(t *testing.T) {
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
 			commandBuilder.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
 				"video 1 output",
 				0,
 			),
 			commandBuilder.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
 				"video 2 output",
 				1,
 			),
@@ -50,7 +50,7 @@ func TestCmdChannel(t *testing.T) {
 			"video 1 output",
 			"video 2 output",
 			"Could not download t2-vId2: exit status 1",
-			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
+			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '--audio-quality' '0' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
 			"",
 		},
 		strings.Split(writer.String(), "\n"),
@@ -75,7 +75,7 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
 			commandBuilder.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
 				"video 2 output",
 				1,
 			),
@@ -89,7 +89,7 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 		[]string{
 			"video 2 output",
 			"Could not download t2-vId2: exit status 1",
-			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
+			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '--audio-quality' '0' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
 			"",
 		},
 		strings.Split(writer.String(), "\n"),
@@ -119,7 +119,7 @@ func TestCmdChannelCleanup(t *testing.T) {
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
 			commandBuilder.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
 				"video 2 output",
 				1,
 			),
@@ -133,7 +133,7 @@ func TestCmdChannelCleanup(t *testing.T) {
 		[]string{
 			"video 2 output",
 			"Could not download t2-vId2: exit status 1",
-			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
+			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '--audio-quality' '0' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
 			"",
 		},
 		strings.Split(writer.String(), "\n"),
@@ -170,7 +170,7 @@ func TestCmdChannelCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
 			commandBuilder.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
 				"video 2 output",
 				1,
 			),
@@ -184,7 +184,7 @@ func TestCmdChannelCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 		[]string{
 			"video 2 output",
 			"Could not download t2-vId2: exit status 1",
-			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
+			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '--audio-quality' '0' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
 			"",
 		},
 		strings.Split(writer.String(), "\n"),
@@ -269,7 +269,7 @@ func TestCmdChannelAfter(t *testing.T) {
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
 			commandBuilder.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
 				"video 1 output",
 				0,
 			),
@@ -350,7 +350,7 @@ func TestCmdChannelYoutubeSearchPage2Error(t *testing.T) {
 			ExpectedCommands: []*commandBuilder.ExpectedCommand{
 				commandBuilder.NewExpectedCommand(
 					"",
-					"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+					"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
 					"video 1 output",
 					0,
 				),
@@ -408,7 +408,7 @@ func TestCmdChannelYoutubeSearchInvalidVideos(t *testing.T) {
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
 			commandBuilder.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
 				"video 1 output",
 				0,
 			),
