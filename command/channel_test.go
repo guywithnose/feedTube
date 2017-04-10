@@ -58,30 +58,46 @@ func TestCmdChannel(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	expectedXMLLines := []string{
-		"<rss version=\"2.0\">",
-		"  <channel>",
-		"    <title>t</title>",
-		"    <description>d</description>",
-		xmlLines[4],
-		"    <item>",
-		"      <title>t</title>",
-		"      <description>d</description>",
-		"      <guid>vId1</guid>",
-		"      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>",
-		"      <enclosure url=\"http://foo.com/t-vId1.mp3\" type=\"audio/mpeg\"></enclosure>",
-		"    </item>",
-		"    <item>",
-		"      <title>t2</title>",
-		"      <description>d2</description>",
-		"      <guid>vId2</guid>",
-		"      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>",
-		"      <enclosure url=\"http://foo.com/t2-vId2.mp3\" type=\"audio/mpeg\"></enclosure>",
-		"    </item>",
-		"  </channel>",
-		"</rss>",
+	assert.Equal(t, getExpectedXML(xmlLines[4]), xmlLines)
+}
+
+func TestCmdChannelNoRedownload(t *testing.T) {
+	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
+	defer removeFile(t, outputFolder)
+	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
+	_, err := os.Create(fmt.Sprintf("%s/t-vId1.mp3", outputFolder))
+	assert.Nil(t, err)
+	ts := getTestServer(getDefaultChannelResponses())
+	defer ts.Close()
+	youtubeAPIURLBase = ts.URL
+	app, writer, _, set := getBaseAppAndFlagSet(t, outputFolder)
+	cb := &commandBuilder.Test{
+		ExpectedCommands: []*commandBuilder.ExpectedCommand{
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"video 2 output",
+				1,
+			),
+		},
 	}
-	assert.Equal(t, expectedXMLLines, xmlLines)
+	assert.Nil(t, CmdChannel(cb)(cli.NewContext(app, set, nil)))
+	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []error(nil), cb.Errors)
+	assert.Equal(
+		t,
+		[]string{
+			"video 2 output",
+			"Could not download t2-vId2: exit status 1",
+			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
+			"",
+		},
+		strings.Split(writer.String(), "\n"),
+	)
+	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
+	assert.Nil(t, err)
+	xmlLines := strings.Split(string(xmlBytes), "\n")
+	assert.Equal(t, getExpectedXML(xmlLines[4]), xmlLines)
 }
 
 func TestCmdChannelUsage(t *testing.T) {
@@ -368,4 +384,30 @@ func getDefaultChannelResponses() map[string]string {
 	bytes, _ = json.Marshal(channelInfo)
 	responses["/channels?alt=json&forUsername=awesome&key=fakeApiKey&part=snippet"] = string(bytes)
 	return responses
+}
+
+func getExpectedXML(dateLine string) []string {
+	return []string{
+		"<rss version=\"2.0\">",
+		"  <channel>",
+		"    <title>t</title>",
+		"    <description>d</description>",
+		dateLine,
+		"    <item>",
+		"      <title>t</title>",
+		"      <description>d</description>",
+		"      <guid>vId1</guid>",
+		"      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>",
+		"      <enclosure url=\"http://foo.com/t-vId1.mp3\" type=\"audio/mpeg\"></enclosure>",
+		"    </item>",
+		"    <item>",
+		"      <title>t2</title>",
+		"      <description>d2</description>",
+		"      <guid>vId2</guid>",
+		"      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>",
+		"      <enclosure url=\"http://foo.com/t2-vId2.mp3\" type=\"audio/mpeg\"></enclosure>",
+		"    </item>",
+		"  </channel>",
+		"</rss>",
+	}
 }
