@@ -31,6 +31,12 @@ var flags = []cli.Flag{
 		Name:  "baseURL, b",
 		Usage: "The base URL to access the output folder",
 	},
+	cli.BoolFlag{
+		Name: "cleanupUnrelatedFiles",
+		Usage: "Delete any files in the output folder not related to the current feed. " +
+			"This can be useful if you are maintaining a playlist and you want to remove old files when you remove them from the playlist. " +
+			"DO NOT use this if multiple feeds are sharing an output folder.",
+	},
 }
 
 // Commands defines the commands that can be called on hostBuilder

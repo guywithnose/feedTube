@@ -100,6 +100,102 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 	assert.Equal(t, getExpectedXML(xmlLines[4]), xmlLines)
 }
 
+func TestCmdChannelCleanup(t *testing.T) {
+	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
+	defer removeFile(t, outputFolder)
+	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
+	unrelatedFile := fmt.Sprintf("%s/unrelated.mp3", outputFolder)
+	relatedFile := fmt.Sprintf("%s/t-vId1.mp3", outputFolder)
+	_, err := os.Create(relatedFile)
+	assert.Nil(t, err)
+	_, err = os.Create(unrelatedFile)
+	assert.Nil(t, err)
+	ts := getTestServer(getDefaultChannelResponses())
+	defer ts.Close()
+	youtubeAPIURLBase = ts.URL
+	app, writer, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
+	set.Bool("cleanupUnrelatedFiles", true, "doc")
+	cb := &commandBuilder.Test{
+		ExpectedCommands: []*commandBuilder.ExpectedCommand{
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"video 2 output",
+				1,
+			),
+		},
+	}
+	assert.Nil(t, CmdChannel(cb)(cli.NewContext(app, set, nil)))
+	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []error(nil), cb.Errors)
+	assert.Equal(
+		t,
+		[]string{
+			"video 2 output",
+			"Could not download t2-vId2: exit status 1",
+			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
+			"",
+		},
+		strings.Split(writer.String(), "\n"),
+	)
+	assert.Equal(t, "Removing file: /tmp/testFeedTube/unrelated.mp3\n", errWriter.String())
+	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
+	assert.Nil(t, err)
+	xmlLines := strings.Split(string(xmlBytes), "\n")
+	assert.Equal(t, getExpectedXML(xmlLines[4]), xmlLines)
+	_, err = os.Stat(unrelatedFile)
+	assert.True(t, os.IsNotExist(err), "Unrelated file was not removed")
+	_, err = os.Stat(relatedFile)
+	assert.False(t, os.IsNotExist(err), "Related file was removed")
+}
+
+func TestCmdChannelCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
+	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
+	defer removeFile(t, outputFolder)
+	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
+	unrelatedFile := fmt.Sprintf("%s/unrelated", outputFolder)
+	relatedFile := fmt.Sprintf("%s/t-vId1.mp3", outputFolder)
+	_, err := os.Create(relatedFile)
+	assert.Nil(t, err)
+	err = os.Mkdir(unrelatedFile, 0777)
+	assert.Nil(t, err)
+	_, err = os.Create(fmt.Sprintf("%s/foo", unrelatedFile))
+	assert.Nil(t, err)
+	ts := getTestServer(getDefaultChannelResponses())
+	defer ts.Close()
+	youtubeAPIURLBase = ts.URL
+	app, writer, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
+	set.Bool("cleanupUnrelatedFiles", true, "doc")
+	cb := &commandBuilder.Test{
+		ExpectedCommands: []*commandBuilder.ExpectedCommand{
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"video 2 output",
+				1,
+			),
+		},
+	}
+	assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), "Could not remove unrelated file: remove /tmp/testFeedTube/unrelated: directory not empty")
+	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []error(nil), cb.Errors)
+	assert.Equal(
+		t,
+		[]string{
+			"video 2 output",
+			"Could not download t2-vId2: exit status 1",
+			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
+			"",
+		},
+		strings.Split(writer.String(), "\n"),
+	)
+	assert.Equal(t, "Removing file: /tmp/testFeedTube/unrelated\n", errWriter.String())
+	_, err = os.Stat(unrelatedFile)
+	assert.False(t, os.IsNotExist(err), "Unrelated file was removed")
+	_, err = os.Stat(relatedFile)
+	assert.False(t, os.IsNotExist(err), "Related file was removed")
+}
+
 func TestCmdChannelUsage(t *testing.T) {
 	set := flag.NewFlagSet("test", 0)
 	app, _, _ := appWithTestWriters()
