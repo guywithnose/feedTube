@@ -1,0 +1,17 @@
+_feedtube_zsh_autocomplete() {
+
+  local -a opts
+  opts=("${(@f)$(feedTube ${words[@]:1:#words[@]-1} --generate-bash-completion)}")
+
+  if [[ "${opts}" == 'fileCompletion' ]]
+  then
+      _files
+      return
+  fi
+
+  _describe 'values' opts
+
+  return
+}
+
+compdef _feedtube_zsh_autocomplete feedTube

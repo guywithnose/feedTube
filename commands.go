@@ -42,24 +42,26 @@ var flags = []cli.Flag{
 // Commands defines the commands that can be called on hostBuilder
 var Commands = []cli.Command{
 	{
-		Name:    "channel",
-		Aliases: []string{"c"},
-		Usage:   "Builds your rss file from a youtube channel",
-		Action:  command.CmdChannel(commandBuilder.Real{}),
+		Name:         "channel",
+		Aliases:      []string{"c"},
+		Usage:        "Builds your rss file from a youtube channel",
+		Action:       command.CmdChannel(commandBuilder.Real{}),
+		BashComplete: command.Completion,
 		Flags: append(
 			flags,
 			cli.StringFlag{
-				Name:  "after",
+				Name:  "after, a",
 				Usage: "Only process videos after a given date",
 			},
 		),
 	},
 	{
-		Name:    "playlist",
-		Aliases: []string{"p"},
-		Usage:   "Builds your rss file from a youtube playlist",
-		Action:  command.CmdPlaylist(commandBuilder.Real{}),
-		Flags:   flags,
+		Name:         "playlist",
+		Aliases:      []string{"p"},
+		Usage:        "Builds your rss file from a youtube playlist",
+		Action:       command.CmdPlaylist(commandBuilder.Real{}),
+		BashComplete: command.Completion,
+		Flags:        flags,
 	},
 }
 
