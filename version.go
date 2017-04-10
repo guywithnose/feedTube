@@ -4,4 +4,4 @@ package main
 const Name string = "feedTube"
 
 // Version is the current version
-const Version string = "0.1.0"
+const Version string = "0.2.0"
