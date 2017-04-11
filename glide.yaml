@@ -13,3 +13,4 @@ import:
 - package: google.golang.org/api
   subpackages:
   - youtube/v1
+- package: github.com/gorilla/feeds

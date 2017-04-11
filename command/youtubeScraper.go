@@ -10,19 +10,20 @@ import (
 	"google.golang.org/api/googleapi/transport"
 	youtube "google.golang.org/api/youtube/v3"
 
+	"github.com/gorilla/feeds"
 	"github.com/kennygrant/sanitize"
 )
 
 var youtubeAPIURLBase = "https://www.googleapis.com/youtube/v3/"
 
 // getVideosForChannel returns an array of all the youtube video ids on a channel
-func getVideosForChannel(apiKey, channelName, after string, writer io.Writer) (<-chan *Video, *FeedInfo, error) {
+func getVideosForChannel(apiKey, channelName, after string, writer io.Writer) (<-chan *youtubeItem, *feeds.Feed, error) {
 	channelID, info, err := getChannelIDFromName(apiKey, channelName)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	videos := make(chan *Video, 10)
+	videos := make(chan *youtubeItem, 10)
 	go func() {
 		defer close(videos)
 		youtubeService := getYoutubeService(apiKey)
@@ -60,7 +61,7 @@ func getVideosForChannel(apiKey, channelName, after string, writer io.Writer) (<
 	return videos, info, nil
 }
 
-func parseSearchResults(results []*youtube.SearchResult, videos chan<- *Video, errWriter io.Writer) {
+func parseSearchResults(results []*youtube.SearchResult, videos chan<- *youtubeItem, errWriter io.Writer) {
 	for _, result := range results {
 		publishedTime, err := time.Parse(time.RFC3339, result.Snippet.PublishedAt)
 		if err != nil {
@@ -68,17 +69,19 @@ func parseSearchResults(results []*youtube.SearchResult, videos chan<- *Video, e
 			continue
 		}
 
-		videos <- &Video{
-			ID:          result.Id.VideoId,
-			Title:       result.Snippet.Title,
-			Description: result.Snippet.Description,
-			Published:   publishedTime,
-			Filename:    fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(result.Snippet.Title), " ", "-", -1), result.Id.VideoId),
+		videos <- &youtubeItem{
+			Item: feeds.Item{
+				Id:          result.Id.VideoId,
+				Title:       result.Snippet.Title,
+				Description: result.Snippet.Description,
+				Created:     publishedTime,
+			},
+			Filename: fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(result.Snippet.Title), " ", "-", -1), result.Id.VideoId),
 		}
 	}
 }
 
-func parsePlaylistItems(results []*youtube.PlaylistItem, videos chan<- *Video, errWriter io.Writer) {
+func parsePlaylistItems(results []*youtube.PlaylistItem, videos chan<- *youtubeItem, errWriter io.Writer) {
 	for _, result := range results {
 		publishedTime, err := time.Parse(time.RFC3339, result.Snippet.PublishedAt)
 		if err != nil {
@@ -86,24 +89,26 @@ func parsePlaylistItems(results []*youtube.PlaylistItem, videos chan<- *Video, e
 			continue
 		}
 
-		videos <- &Video{
-			ID:          result.Snippet.ResourceId.VideoId,
-			Title:       result.Snippet.Title,
-			Description: result.Snippet.Description,
-			Published:   publishedTime,
-			Filename:    fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(result.Snippet.Title), " ", "-", -1), result.Snippet.ResourceId.VideoId),
+		videos <- &youtubeItem{
+			Item: feeds.Item{
+				Id:          result.Snippet.ResourceId.VideoId,
+				Title:       result.Snippet.Title,
+				Description: result.Snippet.Description,
+				Created:     publishedTime,
+			},
+			Filename: fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(result.Snippet.Title), " ", "-", -1), result.Snippet.ResourceId.VideoId),
 		}
 	}
 }
 
 // getVideosForPlaylist returns an array of all the youtube video ids in a playlist
-func getVideosForPlaylist(apiKey, playlistID string, writer io.Writer) (<-chan *Video, *FeedInfo, error) {
+func getVideosForPlaylist(apiKey, playlistID string, writer io.Writer) (<-chan *youtubeItem, *feeds.Feed, error) {
 	info, err := getPlaylistInfo(apiKey, playlistID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	videos := make(chan *Video, 10)
+	videos := make(chan *youtubeItem, 10)
 	go func() {
 		defer close(videos)
 		youtubeService := getYoutubeService(apiKey)
@@ -130,7 +135,7 @@ func getVideosForPlaylist(apiKey, playlistID string, writer io.Writer) (<-chan *
 	return videos, info, nil
 }
 
-func getChannelIDFromName(apiKey, channelName string) (string, *FeedInfo, error) {
+func getChannelIDFromName(apiKey, channelName string) (string, *feeds.Feed, error) {
 	youtubeService := getYoutubeService(apiKey)
 	listCall := youtubeService.Channels.List("snippet").ForUsername(channelName)
 	resp, err := listCall.Do()
@@ -142,10 +147,10 @@ func getChannelIDFromName(apiKey, channelName string) (string, *FeedInfo, error)
 		return "", nil, fmt.Errorf("channel %s not found", channelName)
 	}
 
-	return resp.Items[0].Id, &FeedInfo{Title: resp.Items[0].Snippet.Title, Description: resp.Items[0].Snippet.Description}, nil
+	return resp.Items[0].Id, &feeds.Feed{Title: resp.Items[0].Snippet.Title, Description: resp.Items[0].Snippet.Description}, nil
 }
 
-func getPlaylistInfo(apiKey, playlistID string) (*FeedInfo, error) {
+func getPlaylistInfo(apiKey, playlistID string) (*feeds.Feed, error) {
 	youtubeService := getYoutubeService(apiKey)
 	listCall := youtubeService.Playlists.List("snippet").Id(playlistID)
 	resp, err := listCall.Do()
@@ -157,7 +162,7 @@ func getPlaylistInfo(apiKey, playlistID string) (*FeedInfo, error) {
 		return nil, fmt.Errorf("playlist %s not found", playlistID)
 	}
 
-	return &FeedInfo{Title: resp.Items[0].Snippet.Title, Description: resp.Items[0].Snippet.Description}, nil
+	return &feeds.Feed{Title: resp.Items[0].Snippet.Title, Description: resp.Items[0].Snippet.Description}, nil
 }
 
 func getYoutubeService(apiKey string) *youtube.Service {

@@ -6,23 +6,37 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/gorilla/feeds"
 	"github.com/guywithnose/commandBuilder"
 	"github.com/urfave/cli"
 )
 
-// CmdBuild builds the hostfile from a configuration file
-func handleVideos(c *cli.Context, videos <-chan *Video, feedInfo *FeedInfo, outputFolder, xmlFile, baseURL string, cmdBuilder commandBuilder.Builder) error {
+type youtubeItem struct {
+	feeds.Item
+	Filename string
+}
+
+func handleVideos(
+	c *cli.Context,
+	videos <-chan *youtubeItem,
+	info *feeds.Feed,
+	outputFolder,
+	xmlFile,
+	baseURL string,
+	cmdBuilder commandBuilder.Builder,
+) error {
 	filter := c.String("filter")
 
-	rssVideos := make([]*Video, 0)
+	rssVideos := make([]*youtubeItem, 0)
 	for video := range videos {
-		if (filter != "" && !strings.Contains(video.Title, filter)) || video.ID == "" {
+		if (filter != "" && !strings.Contains(video.Title, filter)) || video.Id == "" {
 			continue
 		}
 
 		if _, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, video.Filename)); os.IsNotExist(err) {
-			downloadVideo(outputFolder, video.ID, video.Filename, cmdBuilder, c.App.Writer)
+			downloadVideo(outputFolder, video.Id, video.Filename, cmdBuilder, c.App.Writer)
 		}
 
 		rssVideos = append(rssVideos, video)
@@ -43,12 +57,12 @@ func handleVideos(c *cli.Context, videos <-chan *Video, feedInfo *FeedInfo, outp
 		return cli.NewExitError("You must specify an baseURL", 1)
 	}
 
-	rss := buildRssFile(rssVideos, baseURL, *feedInfo)
+	rss := buildRssFile(rssVideos, baseURL, info)
 
-	return ioutil.WriteFile(xmlFile, rss, 0644)
+	return ioutil.WriteFile(xmlFile, []byte(rss), 0644)
 }
 
-func cleanupUnrelatedFiles(videos []*Video, outputFolder string, writer io.Writer) error {
+func cleanupUnrelatedFiles(videos []*youtubeItem, outputFolder string, writer io.Writer) error {
 	dir, _ := os.Open(outputFolder)
 	files, _ := dir.Readdir(-1)
 
@@ -96,4 +110,20 @@ func downloadVideo(outputFolder, videoID, fileName string, cmdBuilder commandBui
 	}
 
 	return true
+}
+
+func buildRssFile(items []*youtubeItem, baseURL string, feed *feeds.Feed) string {
+	feed.Updated = time.Now()
+	feed.Link = &feeds.Link{}
+
+	for _, item := range items {
+		item.Link = &feeds.Link{
+			Href: fmt.Sprintf("%s/%s.mp3", baseURL, item.Filename),
+		}
+
+		feed.Items = append(feed.Items, &item.Item)
+	}
+
+	xml, _ := feed.ToRss()
+	return xml
 }

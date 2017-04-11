@@ -58,7 +58,7 @@ func TestCmdChannel(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedXML(xmlLines[4]), xmlLines)
+	assert.Equal(t, getExpectedXML(xmlLines[5:7]), xmlLines)
 }
 
 func TestCmdChannelNoRedownload(t *testing.T) {
@@ -97,7 +97,7 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedXML(xmlLines[4]), xmlLines)
+	assert.Equal(t, getExpectedXML(xmlLines[5:7]), xmlLines)
 }
 
 func TestCmdChannelCleanup(t *testing.T) {
@@ -142,7 +142,7 @@ func TestCmdChannelCleanup(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedXML(xmlLines[4]), xmlLines)
+	assert.Equal(t, getExpectedXML(xmlLines[5:7]), xmlLines)
 	_, err = os.Stat(unrelatedFile)
 	assert.True(t, os.IsNotExist(err), "Unrelated file was not removed")
 	_, err = os.Stat(relatedFile)
@@ -200,7 +200,7 @@ func TestCmdChannelUsage(t *testing.T) {
 	set := flag.NewFlagSet("test", 0)
 	app, _, _ := appWithTestWriters()
 	cb := &commandBuilder.Test{}
-	assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), "Usage: \"feedTube channel {channelName}\"")
+	assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), `Usage: "feedTube channel {channelName}"`)
 }
 
 func TestCmdChannelNoOutputFolder(t *testing.T) {
@@ -283,20 +283,22 @@ func TestCmdChannelAfter(t *testing.T) {
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
 	expectedXMLLines := []string{
-		"<rss version=\"2.0\">",
-		"  <channel>",
-		"    <title>t</title>",
-		"    <description>d</description>",
-		xmlLines[4],
-		"    <item>",
-		"      <title>t</title>",
-		"      <description>d</description>",
-		"      <guid>vId1</guid>",
-		"      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>",
-		"      <enclosure url=\"http://foo.com/t-vId1.mp3\" type=\"audio/mpeg\"></enclosure>",
-		"    </item>",
-		"  </channel>",
-		"</rss>",
+		`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">`,
+		`  <channel>`,
+		`    <title>t</title>`,
+		`    <link></link>`,
+		`    <description>d</description>`,
+		xmlLines[5],
+		xmlLines[6],
+		`    <item>`,
+		`      <title>t</title>`,
+		`      <link>http://foo.com/t-vId1.mp3</link>`,
+		`      <description>d</description>`,
+		`      <guid>vId1</guid>`,
+		`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
+		`    </item>`,
+		`  </channel>`,
+		`</rss>`,
 	}
 	assert.Equal(t, expectedXMLLines, xmlLines)
 }
@@ -482,28 +484,30 @@ func getDefaultChannelResponses() map[string]string {
 	return responses
 }
 
-func getExpectedXML(dateLine string) []string {
+func getExpectedXML(dateLine []string) []string {
 	return []string{
-		"<rss version=\"2.0\">",
-		"  <channel>",
-		"    <title>t</title>",
-		"    <description>d</description>",
-		dateLine,
-		"    <item>",
-		"      <title>t</title>",
-		"      <description>d</description>",
-		"      <guid>vId1</guid>",
-		"      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>",
-		"      <enclosure url=\"http://foo.com/t-vId1.mp3\" type=\"audio/mpeg\"></enclosure>",
-		"    </item>",
-		"    <item>",
-		"      <title>t2</title>",
-		"      <description>d2</description>",
-		"      <guid>vId2</guid>",
-		"      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>",
-		"      <enclosure url=\"http://foo.com/t2-vId2.mp3\" type=\"audio/mpeg\"></enclosure>",
-		"    </item>",
-		"  </channel>",
-		"</rss>",
+		`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">`,
+		`  <channel>`,
+		`    <title>t</title>`,
+		`    <link></link>`,
+		`    <description>d</description>`,
+		dateLine[0],
+		dateLine[1],
+		`    <item>`,
+		`      <title>t</title>`,
+		`      <link>http://foo.com/t-vId1.mp3</link>`,
+		`      <description>d</description>`,
+		`      <guid>vId1</guid>`,
+		`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
+		`    </item>`,
+		`    <item>`,
+		`      <title>t2</title>`,
+		`      <link>http://foo.com/t2-vId2.mp3</link>`,
+		`      <description>d2</description>`,
+		`      <guid>vId2</guid>`,
+		`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
+		`    </item>`,
+		`  </channel>`,
+		`</rss>`,
 	}
 }

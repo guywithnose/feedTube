@@ -59,27 +59,29 @@ func TestCmdPlaylist(t *testing.T) {
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
 	expectedXMLLines := []string{
-		"<rss version=\"2.0\">",
-		"  <channel>",
-		"    <title>playlistTitle</title>",
-		"    <description>playlistDescription</description>",
-		xmlLines[4],
-		"    <item>",
-		"      <title>t</title>",
-		"      <description>d</description>",
-		"      <guid>vId1</guid>",
-		"      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>",
-		"      <enclosure url=\"http://foo.com/t-vId1.mp3\" type=\"audio/mpeg\"></enclosure>",
-		"    </item>",
-		"    <item>",
-		"      <title>t2</title>",
-		"      <description>d2</description>",
-		"      <guid>vId2</guid>",
-		"      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>",
-		"      <enclosure url=\"http://foo.com/t2-vId2.mp3\" type=\"audio/mpeg\"></enclosure>",
-		"    </item>",
-		"  </channel>",
-		"</rss>",
+		`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">`,
+		`  <channel>`,
+		`    <title>playlistTitle</title>`,
+		`    <link></link>`,
+		`    <description>playlistDescription</description>`,
+		xmlLines[5],
+		xmlLines[6],
+		`    <item>`,
+		`      <title>t</title>`,
+		`      <link>http://foo.com/t-vId1.mp3</link>`,
+		`      <description>d</description>`,
+		`      <guid>vId1</guid>`,
+		`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
+		`    </item>`,
+		`    <item>`,
+		`      <title>t2</title>`,
+		`      <link>http://foo.com/t2-vId2.mp3</link>`,
+		`      <description>d2</description>`,
+		`      <guid>vId2</guid>`,
+		`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
+		`    </item>`,
+		`  </channel>`,
+		`</rss>`,
 	}
 	assert.Equal(t, expectedXMLLines, xmlLines)
 }
@@ -111,20 +113,22 @@ func TestCmdPlaylistFilter(t *testing.T) {
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
 	expectedXMLLines := []string{
-		"<rss version=\"2.0\">",
-		"  <channel>",
-		"    <title>playlistTitle</title>",
-		"    <description>playlistDescription</description>",
-		xmlLines[4],
-		"    <item>",
-		"      <title>t2</title>",
-		"      <description>d2</description>",
-		"      <guid>vId2</guid>",
-		"      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>",
-		"      <enclosure url=\"http://foo.com/t2-vId2.mp3\" type=\"audio/mpeg\"></enclosure>",
-		"    </item>",
-		"  </channel>",
-		"</rss>",
+		`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">`,
+		`  <channel>`,
+		`    <title>playlistTitle</title>`,
+		`    <link></link>`,
+		`    <description>playlistDescription</description>`,
+		xmlLines[5],
+		xmlLines[6],
+		`    <item>`,
+		`      <title>t2</title>`,
+		`      <link>http://foo.com/t2-vId2.mp3</link>`,
+		`      <description>d2</description>`,
+		`      <guid>vId2</guid>`,
+		`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
+		`    </item>`,
+		`  </channel>`,
+		`</rss>`,
 	}
 	assert.Equal(t, expectedXMLLines, xmlLines)
 }
@@ -223,7 +227,7 @@ func TestCmdPlaylistUsage(t *testing.T) {
 	set := flag.NewFlagSet("test", 0)
 	app, _, _ := appWithTestWriters()
 	cb := &commandBuilder.Test{}
-	assert.EqualError(t, CmdPlaylist(cb)(cli.NewContext(app, set, nil)), "Usage: \"feedTube playlist {playlistID}\"")
+	assert.EqualError(t, CmdPlaylist(cb)(cli.NewContext(app, set, nil)), `Usage: "feedTube playlist {playlistID}"`)
 }
 
 func TestCmdPlaylistNoOutputFolder(t *testing.T) {
