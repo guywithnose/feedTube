@@ -65,7 +65,7 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
 	defer removeFile(t, outputFolder)
 	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
-	_, err := os.Create(fmt.Sprintf("%s/t-vId1.mp3", outputFolder))
+	err := ioutil.WriteFile(fmt.Sprintf("%s/t-vId1.mp3", outputFolder), []byte("123"), 0777)
 	assert.Nil(t, err)
 	ts := getTestServer(getDefaultChannelResponses())
 	defer ts.Close()
@@ -97,7 +97,37 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedXML(xmlLines[5:7]), xmlLines)
+	assert.Equal(
+		t,
+		[]string{
+			`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">`,
+			`  <channel>`,
+			`    <title>t</title>`,
+			`    <link></link>`,
+			`    <description>d</description>`,
+			xmlLines[5],
+			xmlLines[6],
+			`    <item>`,
+			`      <title>t</title>`,
+			`      <link>http://foo.com/t-vId1.mp3</link>`,
+			`      <description>d</description>`,
+			`      <enclosure url="http://foo.com/t-vId1.mp3" length="3" type="audio/mpeg"></enclosure>`,
+			`      <guid>vId1</guid>`,
+			`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
+			`    </item>`,
+			`    <item>`,
+			`      <title>t2</title>`,
+			`      <link>http://foo.com/t2-vId2.mp3</link>`,
+			`      <description>d2</description>`,
+			`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
+			`      <guid>vId2</guid>`,
+			`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
+			`    </item>`,
+			`  </channel>`,
+			`</rss>`,
+		},
+		xmlLines,
+	)
 }
 
 func TestCmdChannelCleanup(t *testing.T) {
@@ -294,6 +324,7 @@ func TestCmdChannelAfter(t *testing.T) {
 		`      <title>t</title>`,
 		`      <link>http://foo.com/t-vId1.mp3</link>`,
 		`      <description>d</description>`,
+		`      <enclosure url="http://foo.com/t-vId1.mp3" length="0" type="audio/mpeg"></enclosure>`,
 		`      <guid>vId1</guid>`,
 		`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
 		`    </item>`,
@@ -497,6 +528,7 @@ func getExpectedXML(dateLine []string) []string {
 		`      <title>t</title>`,
 		`      <link>http://foo.com/t-vId1.mp3</link>`,
 		`      <description>d</description>`,
+		`      <enclosure url="http://foo.com/t-vId1.mp3" length="0" type="audio/mpeg"></enclosure>`,
 		`      <guid>vId1</guid>`,
 		`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
 		`    </item>`,
@@ -504,6 +536,7 @@ func getExpectedXML(dateLine []string) []string {
 		`      <title>t2</title>`,
 		`      <link>http://foo.com/t2-vId2.mp3</link>`,
 		`      <description>d2</description>`,
+		`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
 		`      <guid>vId2</guid>`,
 		`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
 		`    </item>`,

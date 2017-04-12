@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,7 +58,7 @@ func handleVideos(
 		return cli.NewExitError("You must specify an baseURL", 1)
 	}
 
-	rss := buildRssFile(rssVideos, baseURL, info)
+	rss := buildRssFile(rssVideos, outputFolder, baseURL, info)
 
 	return ioutil.WriteFile(xmlFile, []byte(rss), 0644)
 }
@@ -112,13 +113,21 @@ func downloadVideo(outputFolder, videoID, fileName string, cmdBuilder commandBui
 	return true
 }
 
-func buildRssFile(items []*youtubeItem, baseURL string, feed *feeds.Feed) string {
+func buildRssFile(items []*youtubeItem, outputFolder, baseURL string, feed *feeds.Feed) string {
 	feed.Updated = time.Now()
 	feed.Link = &feeds.Link{}
 
 	for _, item := range items {
+		var length int64
+		fileInfo, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, item.Filename))
+		if err == nil {
+			length = fileInfo.Size()
+		}
+
 		item.Link = &feeds.Link{
-			Href: fmt.Sprintf("%s/%s.mp3", baseURL, item.Filename),
+			Href:   fmt.Sprintf("%s/%s.mp3", baseURL, item.Filename),
+			Type:   "audio/mpeg",
+			Length: strconv.FormatInt(length, 10),
 		}
 
 		feed.Items = append(feed.Items, &item.Item)
