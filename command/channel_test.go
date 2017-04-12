@@ -61,6 +61,51 @@ func TestCmdChannel(t *testing.T) {
 	assert.Equal(t, getExpectedXML(xmlLines[5:7]), xmlLines)
 }
 
+func TestCmdChannelById(t *testing.T) {
+	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
+	defer removeFile(t, outputFolder)
+	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
+	ts := getTestServer(getDefaultChannelResponses())
+	defer ts.Close()
+	youtubeAPIURLBase = ts.URL
+	app, writer, _, set := getBaseAppAndFlagSet(t, outputFolder)
+	assert.Nil(t, set.Parse([]string{"awesomeChannelId"}))
+	cb := &commandBuilder.Test{
+		ExpectedCommands: []*commandBuilder.ExpectedCommand{
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+				"video 1 output",
+				0,
+			),
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"video 2 output",
+				1,
+			),
+		},
+	}
+	assert.Nil(t, CmdChannel(cb)(cli.NewContext(app, set, nil)))
+	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []error(nil), cb.Errors)
+	assert.Equal(
+		t,
+		[]string{
+			"video 1 output",
+			"video 2 output",
+			"Could not download t2-vId2: exit status 1",
+			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '--audio-quality' '0' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
+			"",
+		},
+		strings.Split(writer.String(), "\n"),
+	)
+	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
+	assert.Nil(t, err)
+	xmlLines := strings.Split(string(xmlBytes), "\n")
+	assert.Equal(t, getExpectedXML(xmlLines[5:7]), xmlLines)
+}
+
 func TestCmdChannelNoRedownload(t *testing.T) {
 	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
 	defer removeFile(t, outputFolder)
@@ -289,7 +334,7 @@ func TestCmdChannelAfter(t *testing.T) {
 		},
 	}
 	bytes, _ := json.Marshal(searchPage1)
-	responses["/search?alt=json&channelId=id&key=fakeApiKey&part=snippet&publishedAfter=2006-07-07T00%3A00%3A00Z&type=video"] = string(bytes)
+	responses["/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&publishedAfter=2006-07-07T00%3A00%3A00Z&type=video"] = string(bytes)
 	ts := getTestServer(responses)
 	defer ts.Close()
 	youtubeAPIURLBase = ts.URL
@@ -363,7 +408,7 @@ func TestCmdChannelYoutubeChannelError(t *testing.T) {
 }
 
 func TestCmdChannelYoutubeSearchPage1Error(t *testing.T) {
-	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=id&key=fakeApiKey&part=snippet&type=video", "error")
+	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&type=video", "error")
 	defer ts.Close()
 	runErrorTest(
 		t,
@@ -374,7 +419,7 @@ func TestCmdChannelYoutubeSearchPage1Error(t *testing.T) {
 }
 
 func TestCmdChannelYoutubeSearchPage2Error(t *testing.T) {
-	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=id&key=fakeApiKey&pageToken=page2&part=snippet&type=video", "error")
+	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&pageToken=page2&part=snippet&type=video", "error")
 	defer ts.Close()
 	runErrorTest(
 		t,
@@ -433,7 +478,7 @@ func TestCmdChannelYoutubeSearchInvalidVideos(t *testing.T) {
 		},
 	}
 	bytes, _ := json.Marshal(searchPage1)
-	responses["/search?alt=json&channelId=id&key=fakeApiKey&part=snippet&type=video"] = string(bytes)
+	responses["/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&type=video"] = string(bytes)
 	ts := getTestServer(responses)
 	youtubeAPIURLBase = ts.URL
 	defer ts.Close()
@@ -480,7 +525,7 @@ func getDefaultChannelResponses() map[string]string {
 		},
 	}
 	bytes, _ := json.Marshal(searchPage1)
-	responses["/search?alt=json&channelId=id&key=fakeApiKey&part=snippet&type=video"] = string(bytes)
+	responses["/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&type=video"] = string(bytes)
 
 	searchPage2 := youtube.SearchListResponse{
 		Items: []*youtube.SearchResult{
@@ -497,7 +542,7 @@ func getDefaultChannelResponses() map[string]string {
 		},
 	}
 	bytes, _ = json.Marshal(searchPage2)
-	responses["/search?alt=json&channelId=id&key=fakeApiKey&pageToken=page2&part=snippet&type=video"] = string(bytes)
+	responses["/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&pageToken=page2&part=snippet&type=video"] = string(bytes)
 
 	channelInfo := youtube.ChannelListResponse{
 		Items: []*youtube.Channel{
@@ -506,12 +551,17 @@ func getDefaultChannelResponses() map[string]string {
 					Title:       "t",
 					Description: "d",
 				},
-				Id: "id",
+				Id: "awesomeChannelId",
 			},
 		},
 	}
 	bytes, _ = json.Marshal(channelInfo)
 	responses["/channels?alt=json&forUsername=awesome&key=fakeApiKey&part=snippet"] = string(bytes)
+	responses["/channels?alt=json&id=awesomeChannelId&key=fakeApiKey&part=snippet"] = string(bytes)
+
+	channelIDInfo := youtube.ChannelListResponse{Items: []*youtube.Channel{}}
+	bytes, _ = json.Marshal(channelIDInfo)
+	responses["/channels?alt=json&id=awesome&key=fakeApiKey&part=snippet"] = string(bytes)
 	return responses
 }
 

@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,7 +19,7 @@ var youtubeAPIURLBase = "https://www.googleapis.com/youtube/v3/"
 
 // getVideosForChannel returns an array of all the youtube video ids on a channel
 func getVideosForChannel(apiKey, channelName, after string, writer io.Writer) (<-chan *youtubeItem, *feeds.Feed, error) {
-	channelID, info, err := getChannelIDFromName(apiKey, channelName)
+	channelID, info, err := getChannelInfo(apiKey, channelName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -38,23 +39,14 @@ func getVideosForChannel(apiKey, channelName, after string, writer io.Writer) (<
 			listCall = listCall.PublishedAfter(afterTime.Format(time.RFC3339))
 		}
 
-		resp, err := listCall.Do()
+		err := listCall.Pages(context.Background(), func(resp *youtube.SearchListResponse) error {
+			parseSearchResults(resp.Items, videos, writer)
+			return nil
+		})
+
 		if err != nil {
 			fmt.Fprintf(writer, "Search request failed: %v\n", err)
 			return
-		}
-
-		parseSearchResults(resp.Items, videos, writer)
-
-		for resp.NextPageToken != "" {
-			listCall = listCall.PageToken(resp.NextPageToken)
-			resp, err = listCall.Do()
-			if err != nil {
-				fmt.Fprintf(writer, "Search request failed: %v\n", err)
-				return
-			}
-
-			parseSearchResults(resp.Items, videos, writer)
 		}
 	}()
 
@@ -113,41 +105,66 @@ func getVideosForPlaylist(apiKey, playlistID string, writer io.Writer) (<-chan *
 		defer close(videos)
 		youtubeService := getYoutubeService(apiKey)
 		listCall := youtubeService.PlaylistItems.List("snippet").PlaylistId(playlistID)
-		resp, err := listCall.Do()
+		err = listCall.Pages(context.Background(), func(resp *youtube.PlaylistItemListResponse) error {
+			parsePlaylistItems(resp.Items, videos, writer)
+			return nil
+		})
+
 		if err != nil {
 			fmt.Fprintf(writer, "Playlist items request failed: %v\n", err)
 			return
-		}
-
-		parsePlaylistItems(resp.Items, videos, writer)
-		for resp.NextPageToken != "" {
-			listCall = listCall.PageToken(resp.NextPageToken)
-			resp, err = listCall.Do()
-			if err != nil {
-				fmt.Fprintf(writer, "Playlist items request failed: %v\n", err)
-				return
-			}
-
-			parsePlaylistItems(resp.Items, videos, writer)
 		}
 	}()
 
 	return videos, info, nil
 }
 
-func getChannelIDFromName(apiKey, channelName string) (string, *feeds.Feed, error) {
-	youtubeService := getYoutubeService(apiKey)
-	listCall := youtubeService.Channels.List("snippet").ForUsername(channelName)
-	resp, err := listCall.Do()
+func getChannelInfo(apiKey, channel string) (string, *feeds.Feed, error) {
+	id, info, err := getChannelByID(apiKey, channel)
 	if err != nil {
-		return "", nil, fmt.Errorf("Channel request failed: %v", err)
+		id, info, err = getChannelByName(apiKey, channel)
 	}
 
-	if len(resp.Items) == 0 {
+	return id, info, err
+}
+
+func getChannelByName(apiKey, channelName string) (string, *feeds.Feed, error) {
+	youtubeService := getYoutubeService(apiKey)
+	listCall := youtubeService.Channels.List("snippet").ForUsername(channelName)
+	items, err := makeChannelRequest(listCall)
+	if err != nil {
+		return "", nil, err
+	}
+
+	if len(items) == 0 {
 		return "", nil, fmt.Errorf("channel %s not found", channelName)
 	}
 
-	return resp.Items[0].Id, &feeds.Feed{Title: resp.Items[0].Snippet.Title, Description: resp.Items[0].Snippet.Description}, nil
+	return items[0].Id, &feeds.Feed{Title: items[0].Snippet.Title, Description: items[0].Snippet.Description}, nil
+}
+
+func getChannelByID(apiKey, channelName string) (string, *feeds.Feed, error) {
+	youtubeService := getYoutubeService(apiKey)
+	listCall := youtubeService.Channels.List("snippet").Id(channelName)
+	items, err := makeChannelRequest(listCall)
+	if err != nil {
+		return "", nil, err
+	}
+
+	if len(items) == 0 {
+		return "", nil, fmt.Errorf("channel %s not found", channelName)
+	}
+
+	return items[0].Id, &feeds.Feed{Title: items[0].Snippet.Title, Description: items[0].Snippet.Description}, nil
+}
+
+func makeChannelRequest(listCall *youtube.ChannelsListCall) ([]*youtube.Channel, error) {
+	resp, err := listCall.Do()
+	if err != nil {
+		return nil, fmt.Errorf("Channel request failed: %v", err)
+	}
+
+	return resp.Items, nil
 }
 
 func getPlaylistInfo(apiKey, playlistID string) (*feeds.Feed, error) {
