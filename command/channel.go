@@ -9,7 +9,7 @@ import (
 func CmdChannel(cmdBuilder commandBuilder.Builder) func(c *cli.Context) error {
 	return func(c *cli.Context) error {
 		if c.NArg() != 1 {
-			return cli.NewExitError("Usage: \"feedTube channel {channelName}\"", 1)
+			return cli.NewExitError("Usage: \"feedTube channel {channelName|channelId}\"", 1)
 		}
 
 		outputFolder, apiKey, err := checkFlags(c)

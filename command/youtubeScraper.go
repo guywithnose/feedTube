@@ -120,12 +120,17 @@ func getVideosForPlaylist(apiKey, playlistID string, writer io.Writer) (<-chan *
 }
 
 func getChannelInfo(apiKey, channel string) (string, *feeds.Feed, error) {
-	id, info, err := getChannelByID(apiKey, channel)
-	if err != nil {
-		id, info, err = getChannelByName(apiKey, channel)
+	id, info, idErr := getChannelByID(apiKey, channel)
+	if idErr != nil {
+		id, info, err := getChannelByName(apiKey, channel)
+		if err != nil {
+			return "", nil, fmt.Errorf("%v: %v", idErr, err)
+		}
+
+		return id, info, nil
 	}
 
-	return id, info, err
+	return id, info, nil
 }
 
 func getChannelByName(apiKey, channelName string) (string, *feeds.Feed, error) {
@@ -137,7 +142,7 @@ func getChannelByName(apiKey, channelName string) (string, *feeds.Feed, error) {
 	}
 
 	if len(items) == 0 {
-		return "", nil, fmt.Errorf("channel %s not found", channelName)
+		return "", nil, fmt.Errorf("Channel %s not found", channelName)
 	}
 
 	return items[0].Id, &feeds.Feed{Title: items[0].Snippet.Title, Description: items[0].Snippet.Description}, nil
@@ -152,7 +157,7 @@ func getChannelByID(apiKey, channelName string) (string, *feeds.Feed, error) {
 	}
 
 	if len(items) == 0 {
-		return "", nil, fmt.Errorf("channel %s not found", channelName)
+		return "", nil, fmt.Errorf("Channel ID %s not found", channelName)
 	}
 
 	return items[0].Id, &feeds.Feed{Title: items[0].Snippet.Title, Description: items[0].Snippet.Description}, nil

@@ -275,7 +275,7 @@ func TestCmdChannelUsage(t *testing.T) {
 	set := flag.NewFlagSet("test", 0)
 	app, _, _ := appWithTestWriters()
 	cb := &commandBuilder.Test{}
-	assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), `Usage: "feedTube channel {channelName}"`)
+	assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), `Usage: "feedTube channel {channelName|channelId}"`)
 }
 
 func TestCmdChannelNoOutputFolder(t *testing.T) {
@@ -310,7 +310,7 @@ func TestCmdChannelInvalidChannelName(t *testing.T) {
 	youtubeAPIURLBase = ts.URL
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	cb := &commandBuilder.Test{}
-	assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), "channel awesome not found")
+	assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), "Channel ID awesome not found: Channel awesome not found")
 	assert.Equal(t, []error(nil), cb.Errors)
 }
 
@@ -403,7 +403,28 @@ func TestCmdChannelYoutubeChannelError(t *testing.T) {
 	defer ts.Close()
 	cb := &commandBuilder.Test{}
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
-	assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), "Channel request failed: googleapi: got HTTP response code 500 with body: ")
+	assert.EqualError(
+		t,
+		CmdChannel(cb)(cli.NewContext(app, set, nil)),
+		"Channel ID awesome not found: Channel request failed: googleapi: got HTTP response code 500 with body: ",
+	)
+	assert.Equal(t, []error(nil), cb.Errors)
+}
+
+func TestCmdChannelYoutubeChannelIdError(t *testing.T) {
+	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
+	defer removeFile(t, outputFolder)
+	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
+	ts := getTestChannelServerOverrideResponse("/channels?alt=json&id=awesomeChannelId&key=fakeApiKey&part=snippet", "error")
+	defer ts.Close()
+	cb := &commandBuilder.Test{}
+	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
+	assert.Nil(t, set.Parse([]string{"awesomeChannelId"}))
+	assert.EqualError(
+		t,
+		CmdChannel(cb)(cli.NewContext(app, set, nil)),
+		"Channel request failed: googleapi: got HTTP response code 500 with body: : Channel awesomeChannelId not found",
+	)
 	assert.Equal(t, []error(nil), cb.Errors)
 }
 
@@ -562,6 +583,7 @@ func getDefaultChannelResponses() map[string]string {
 	channelIDInfo := youtube.ChannelListResponse{Items: []*youtube.Channel{}}
 	bytes, _ = json.Marshal(channelIDInfo)
 	responses["/channels?alt=json&id=awesome&key=fakeApiKey&part=snippet"] = string(bytes)
+	responses["/channels?alt=json&forUsername=awesomeChannelId&key=fakeApiKey&part=snippet"] = string(bytes)
 	return responses
 }
 
