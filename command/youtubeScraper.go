@@ -65,7 +65,7 @@ func parseSearchResults(results []*youtube.SearchResult, videos chan<- *youtubeI
 			Item: feeds.Item{
 				Id:          result.Id.VideoId,
 				Title:       result.Snippet.Title,
-				Description: result.Snippet.Description,
+				Description: fmt.Sprintf("%s https://youtu.be/%s", result.Snippet.Description, result.Id.VideoId),
 				Created:     publishedTime,
 			},
 			Filename: fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(result.Snippet.Title), " ", "-", -1), result.Id.VideoId),
@@ -85,7 +85,7 @@ func parsePlaylistItems(results []*youtube.PlaylistItem, videos chan<- *youtubeI
 			Item: feeds.Item{
 				Id:          result.Snippet.ResourceId.VideoId,
 				Title:       result.Snippet.Title,
-				Description: result.Snippet.Description,
+				Description: fmt.Sprintf("%s https://youtu.be/%s", result.Snippet.Description, result.Snippet.ResourceId.VideoId),
 				Created:     publishedTime,
 			},
 			Filename: fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(result.Snippet.Title), " ", "-", -1), result.Snippet.ResourceId.VideoId),
