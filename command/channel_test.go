@@ -58,7 +58,42 @@ func TestCmdChannel(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedXML(xmlLines[5:7]), xmlLines)
+	assert.Equal(t, getExpectedChannelXml(xmlLines[7:9]), xmlLines)
+}
+
+func TestCmdChannelInvalidXmlFile(t *testing.T) {
+	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
+	defer removeFile(t, outputFolder)
+	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
+	ts := getTestServer(getDefaultChannelResponses())
+	defer ts.Close()
+	youtubeAPIURLBase = ts.URL
+	set := flag.NewFlagSet("test", 0)
+	set.String("apiKey", "fakeApiKey", "doc")
+	set.String("outputFolder", outputFolder, "doc")
+	set.String("baseURL", "http://foo.com", "doc")
+	assert.Nil(t, set.Parse([]string{"awesome"}))
+	app, _, _ := appWithTestWriters()
+	set.String("xmlFile", "/notadir/invalidFile", "doc")
+	cb := &commandBuilder.Test{
+		ExpectedCommands: []*commandBuilder.ExpectedCommand{
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+				"video 1 output",
+				0,
+			),
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"video 2 output",
+				1,
+			),
+		},
+	}
+	assert.EqualError(t, CmdChannel(cb)(cli.NewContext(app, set, nil)), "open /notadir/invalidFile: no such file or directory")
+	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []error(nil), cb.Errors)
 }
 
 func TestCmdChannelById(t *testing.T) {
@@ -103,7 +138,7 @@ func TestCmdChannelById(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedXML(xmlLines[5:7]), xmlLines)
+	assert.Equal(t, getExpectedChannelXml(xmlLines[7:9]), xmlLines)
 }
 
 func TestCmdChannelNoRedownload(t *testing.T) {
@@ -145,28 +180,30 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 	assert.Equal(
 		t,
 		[]string{
-			`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">`,
+			`<?xml version="1.0" encoding="UTF-8"?>`,
+			`<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">`,
 			`  <channel>`,
 			`    <title>t</title>`,
 			`    <link></link>`,
 			`    <description>d</description>`,
-			xmlLines[5],
-			xmlLines[6],
+			`    <language>en-us</language>`,
+			xmlLines[7],
+			xmlLines[8],
 			`    <item>`,
-			`      <title>t</title>`,
-			`      <link>http://foo.com/t-vId1.mp3</link>`,
-			`      <description>d https://youtu.be/vId1</description>`,
-			`      <enclosure url="http://foo.com/t-vId1.mp3" length="3" type="audio/mpeg"></enclosure>`,
 			`      <guid>vId1</guid>`,
+			`      <title>t</title>`,
+			`      <link>https://youtu.be/vId1</link>`,
+			`      <description>d https://youtu.be/vId1</description>`,
 			`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
+			`      <enclosure url="http://foo.com/t-vId1.mp3" length="3" type="audio/mpeg"></enclosure>`,
 			`    </item>`,
 			`    <item>`,
-			`      <title>t2</title>`,
-			`      <link>http://foo.com/t2-vId2.mp3</link>`,
-			`      <description>d2 https://youtu.be/vId2</description>`,
-			`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
 			`      <guid>vId2</guid>`,
+			`      <title>t2</title>`,
+			`      <link>https://youtu.be/vId2</link>`,
+			`      <description>d2 https://youtu.be/vId2</description>`,
 			`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
+			`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
 			`    </item>`,
 			`  </channel>`,
 			`</rss>`,
@@ -217,7 +254,7 @@ func TestCmdChannelCleanup(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedXML(xmlLines[5:7]), xmlLines)
+	assert.Equal(t, getExpectedChannelXml(xmlLines[7:9]), xmlLines)
 	_, err = os.Stat(unrelatedFile)
 	assert.True(t, os.IsNotExist(err), "Unrelated file was not removed")
 	_, err = os.Stat(relatedFile)
@@ -358,20 +395,22 @@ func TestCmdChannelAfter(t *testing.T) {
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
 	expectedXMLLines := []string{
-		`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">`,
+		`<?xml version="1.0" encoding="UTF-8"?>`,
+		`<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">`,
 		`  <channel>`,
 		`    <title>t</title>`,
 		`    <link></link>`,
 		`    <description>d</description>`,
-		xmlLines[5],
-		xmlLines[6],
+		`    <language>en-us</language>`,
+		xmlLines[7],
+		xmlLines[8],
 		`    <item>`,
-		`      <title>t</title>`,
-		`      <link>http://foo.com/t-vId1.mp3</link>`,
-		`      <description>d https://youtu.be/vId1</description>`,
-		`      <enclosure url="http://foo.com/t-vId1.mp3" length="0" type="audio/mpeg"></enclosure>`,
 		`      <guid>vId1</guid>`,
+		`      <title>t</title>`,
+		`      <link>https://youtu.be/vId1</link>`,
+		`      <description>d https://youtu.be/vId1</description>`,
 		`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
+		`      <enclosure url="http://foo.com/t-vId1.mp3" length="0" type="audio/mpeg"></enclosure>`,
 		`    </item>`,
 		`  </channel>`,
 		`</rss>`,
@@ -496,6 +535,16 @@ func TestCmdChannelYoutubeSearchInvalidVideos(t *testing.T) {
 					VideoId: "vId1",
 				},
 			},
+			{
+				Snippet: &youtube.SearchResultSnippet{
+					Title:       "",
+					Description: "d2",
+					PublishedAt: "2006-01-02T15:04:05Z",
+				},
+				Id: &youtube.ResourceId{
+					VideoId: "vId2",
+				},
+			},
 		},
 	}
 	bytes, _ := json.Marshal(searchPage1)
@@ -511,13 +560,19 @@ func TestCmdChannelYoutubeSearchInvalidVideos(t *testing.T) {
 				"video 1 output",
 				0,
 			),
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/-vId2.%(ext)s https://youtu.be/vId2",
+				"video 2 output",
+				0,
+			),
 		},
 	}
 	app, writer, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	assert.Nil(t, CmdChannel(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
-	assert.Equal(t, "video 1 output\n", writer.String())
+	assert.Equal(t, "video 1 output\nvideo 2 output\n", writer.String())
 }
 
 func getTestChannelServerOverrideResponse(URL, response string) *httptest.Server {
@@ -587,30 +642,32 @@ func getDefaultChannelResponses() map[string]string {
 	return responses
 }
 
-func getExpectedXML(dateLine []string) []string {
+func getExpectedChannelXml(dateLine []string) []string {
 	return []string{
-		`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">`,
+		`<?xml version="1.0" encoding="UTF-8"?>`,
+		`<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">`,
 		`  <channel>`,
 		`    <title>t</title>`,
 		`    <link></link>`,
 		`    <description>d</description>`,
+		`    <language>en-us</language>`,
 		dateLine[0],
 		dateLine[1],
 		`    <item>`,
-		`      <title>t</title>`,
-		`      <link>http://foo.com/t-vId1.mp3</link>`,
-		`      <description>d https://youtu.be/vId1</description>`,
-		`      <enclosure url="http://foo.com/t-vId1.mp3" length="0" type="audio/mpeg"></enclosure>`,
 		`      <guid>vId1</guid>`,
+		`      <title>t</title>`,
+		`      <link>https://youtu.be/vId1</link>`,
+		`      <description>d https://youtu.be/vId1</description>`,
 		`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
+		`      <enclosure url="http://foo.com/t-vId1.mp3" length="0" type="audio/mpeg"></enclosure>`,
 		`    </item>`,
 		`    <item>`,
-		`      <title>t2</title>`,
-		`      <link>http://foo.com/t2-vId2.mp3</link>`,
-		`      <description>d2 https://youtu.be/vId2</description>`,
-		`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
 		`      <guid>vId2</guid>`,
+		`      <title>t2</title>`,
+		`      <link>https://youtu.be/vId2</link>`,
+		`      <description>d2 https://youtu.be/vId2</description>`,
 		`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
+		`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
 		`    </item>`,
 		`  </channel>`,
 		`</rss>`,

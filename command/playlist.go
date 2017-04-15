@@ -24,6 +24,19 @@ func CmdPlaylist(cmdBuilder commandBuilder.Builder) func(c *cli.Context) error {
 			return err
 		}
 
-		return handleVideos(c, videos, channel, outputFolder, c.String("xmlFile"), c.String("baseURL"), cmdBuilder)
+		xmlFileName := c.String("xmlFile")
+		downloadedFiles, err := handleVideos(c, videos, channel, outputFolder, xmlFileName, c.String("baseURL"), cmdBuilder)
+		if err != nil {
+			return err
+		}
+
+		if c.Bool("cleanupUnrelatedFiles") {
+			err := cleanupUnrelatedFiles(downloadedFiles, outputFolder, xmlFileName, c.App.ErrWriter)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
 }

@@ -58,34 +58,107 @@ func TestCmdPlaylist(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	expectedXMLLines := []string{
-		`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">`,
-		`  <channel>`,
-		`    <title>playlistTitle</title>`,
-		`    <link></link>`,
-		`    <description>playlistDescription</description>`,
-		xmlLines[5],
-		xmlLines[6],
-		`    <item>`,
-		`      <title>t</title>`,
-		`      <link>http://foo.com/t-vId1.mp3</link>`,
-		`      <description>d https://youtu.be/vId1</description>`,
-		`      <enclosure url="http://foo.com/t-vId1.mp3" length="0" type="audio/mpeg"></enclosure>`,
-		`      <guid>vId1</guid>`,
-		`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
-		`    </item>`,
-		`    <item>`,
-		`      <title>t2</title>`,
-		`      <link>http://foo.com/t2-vId2.mp3</link>`,
-		`      <description>d2 https://youtu.be/vId2</description>`,
-		`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
-		`      <guid>vId2</guid>`,
-		`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
-		`    </item>`,
-		`  </channel>`,
-		`</rss>`,
+	assert.Equal(t, getExpectedPlaylistXml(xmlLines[7:9]), xmlLines)
+}
+
+func TestCmdPlaylistCleanup(t *testing.T) {
+	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
+	defer removeFile(t, outputFolder)
+	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
+	unrelatedFile := fmt.Sprintf("%s/unrelated.mp3", outputFolder)
+	relatedFile := fmt.Sprintf("%s/t-vId1.mp3", outputFolder)
+	_, err := os.Create(relatedFile)
+	assert.Nil(t, err)
+	_, err = os.Create(unrelatedFile)
+	assert.Nil(t, err)
+	ts := getTestServer(getDefaultPlaylistResponses())
+	defer ts.Close()
+	youtubeAPIURLBase = ts.URL
+	cb := &commandBuilder.Test{
+		ExpectedCommands: []*commandBuilder.ExpectedCommand{
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"video 2 output",
+				1,
+			),
+		},
 	}
-	assert.Equal(t, expectedXMLLines, xmlLines)
+	app, writer, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
+	set.Bool("cleanupUnrelatedFiles", true, "doc")
+	assert.Nil(t, CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
+	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []error(nil), cb.Errors)
+	assert.Equal(
+		t,
+		[]string{
+			"video 2 output",
+			"Could not download t2-vId2: exit status 1",
+			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '--audio-quality' '0' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
+			"",
+		},
+		strings.Split(writer.String(), "\n"),
+	)
+	assert.Equal(t, "Removing file: /tmp/testFeedTube/unrelated.mp3\n", errWriter.String())
+	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
+	assert.Nil(t, err)
+	xmlLines := strings.Split(string(xmlBytes), "\n")
+	assert.Equal(t, getExpectedPlaylistXml(xmlLines[7:9]), xmlLines)
+	_, err = os.Stat(unrelatedFile)
+	assert.True(t, os.IsNotExist(err), "Unrelated file was not removed")
+	_, err = os.Stat(relatedFile)
+	assert.False(t, os.IsNotExist(err), "Related file was removed")
+}
+
+func TestCmdPlaylistCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
+	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
+	defer removeFile(t, outputFolder)
+	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
+	unrelatedFile := fmt.Sprintf("%s/unrelated", outputFolder)
+	relatedFile := fmt.Sprintf("%s/t-vId1.mp3", outputFolder)
+	_, err := os.Create(relatedFile)
+	assert.Nil(t, err)
+	err = os.Mkdir(unrelatedFile, 0777)
+	assert.Nil(t, err)
+	_, err = os.Create(fmt.Sprintf("%s/foo", unrelatedFile))
+	assert.Nil(t, err)
+	ts := getTestServer(getDefaultPlaylistResponses())
+	defer ts.Close()
+	youtubeAPIURLBase = ts.URL
+	cb := &commandBuilder.Test{
+		ExpectedCommands: []*commandBuilder.ExpectedCommand{
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"video 2 output",
+				1,
+			),
+		},
+	}
+	app, writer, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
+	set.Bool("cleanupUnrelatedFiles", true, "doc")
+	assert.EqualError(t, CmdPlaylist(cb)(cli.NewContext(app, set, nil)), "Could not remove unrelated file: remove /tmp/testFeedTube/unrelated: directory not empty")
+	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []error(nil), cb.Errors)
+	assert.Equal(
+		t,
+		[]string{
+			"video 2 output",
+			"Could not download t2-vId2: exit status 1",
+			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '--audio-quality' '0' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
+			"",
+		},
+		strings.Split(writer.String(), "\n"),
+	)
+	assert.Equal(t, "Removing file: /tmp/testFeedTube/unrelated\n", errWriter.String())
+	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
+	assert.Nil(t, err)
+	xmlLines := strings.Split(string(xmlBytes), "\n")
+	assert.Equal(t, getExpectedPlaylistXml(xmlLines[7:9]), xmlLines)
+	_, err = os.Stat(unrelatedFile)
+	assert.False(t, os.IsNotExist(err), "Unrelated file was not removed")
+	_, err = os.Stat(relatedFile)
+	assert.False(t, os.IsNotExist(err), "Related file was removed")
 }
 
 func TestCmdPlaylistFilter(t *testing.T) {
@@ -115,20 +188,22 @@ func TestCmdPlaylistFilter(t *testing.T) {
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
 	expectedXMLLines := []string{
-		`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">`,
+		`<?xml version="1.0" encoding="UTF-8"?>`,
+		`<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">`,
 		`  <channel>`,
 		`    <title>playlistTitle</title>`,
 		`    <link></link>`,
 		`    <description>playlistDescription</description>`,
-		xmlLines[5],
-		xmlLines[6],
+		`    <language>en-us</language>`,
+		xmlLines[7],
+		xmlLines[8],
 		`    <item>`,
-		`      <title>t2</title>`,
-		`      <link>http://foo.com/t2-vId2.mp3</link>`,
-		`      <description>d2 https://youtu.be/vId2</description>`,
-		`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
 		`      <guid>vId2</guid>`,
+		`      <title>t2</title>`,
+		`      <link>https://youtu.be/vId2</link>`,
+		`      <description>d2 https://youtu.be/vId2</description>`,
 		`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
+		`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
 		`    </item>`,
 		`  </channel>`,
 		`</rss>`,
@@ -143,22 +218,7 @@ func TestCmdPlaylistNoBaseUrl(t *testing.T) {
 	ts := getTestServer(getDefaultPlaylistResponses())
 	defer ts.Close()
 	youtubeAPIURLBase = ts.URL
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
-				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
-				"video 1 output",
-				0,
-			),
-			commandBuilder.NewExpectedCommand(
-				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
-				"video 2 output",
-				1,
-			),
-		},
-	}
+	cb := &commandBuilder.Test{}
 	set := flag.NewFlagSet("test", 0)
 	set.String("apiKey", "fakeApiKey", "doc")
 	set.String("outputFolder", outputFolder, "doc")
@@ -167,19 +227,9 @@ func TestCmdPlaylistNoBaseUrl(t *testing.T) {
 	assert.Nil(t, set.Parse([]string{"awesome"}))
 	app, writer, _ := appWithTestWriters()
 	assert.EqualError(t, CmdPlaylist(cb)(cli.NewContext(app, set, nil)), "You must specify an baseURL")
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []*commandBuilder.ExpectedCommand(nil), cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
-	assert.Equal(
-		t,
-		[]string{
-			"video 1 output",
-			"video 2 output",
-			"Could not download t2-vId2: exit status 1",
-			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '--audio-quality' '0' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
-			"",
-		},
-		strings.Split(writer.String(), "\n"),
-	)
+	assert.Equal(t, "", writer.String())
 }
 
 func TestCmdPlaylistNoXmlFile(t *testing.T) {
@@ -433,4 +483,36 @@ func getDefaultPlaylistResponses() map[string]string {
 	responses["/playlistItems?alt=json&key=fakeApiKey&pageToken=page2&part=snippet&playlistId=awesome"] = string(bytes)
 
 	return responses
+}
+
+func getExpectedPlaylistXml(dateLine []string) []string {
+	return []string{
+		`<?xml version="1.0" encoding="UTF-8"?>`,
+		`<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">`,
+		`  <channel>`,
+		`    <title>playlistTitle</title>`,
+		`    <link></link>`,
+		`    <description>playlistDescription</description>`,
+		`    <language>en-us</language>`,
+		dateLine[0],
+		dateLine[1],
+		`    <item>`,
+		`      <guid>vId1</guid>`,
+		`      <title>t</title>`,
+		`      <link>https://youtu.be/vId1</link>`,
+		`      <description>d https://youtu.be/vId1</description>`,
+		`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
+		`      <enclosure url="http://foo.com/t-vId1.mp3" length="0" type="audio/mpeg"></enclosure>`,
+		`    </item>`,
+		`    <item>`,
+		`      <guid>vId2</guid>`,
+		`      <title>t2</title>`,
+		`      <link>https://youtu.be/vId2</link>`,
+		`      <description>d2 https://youtu.be/vId2</description>`,
+		`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
+		`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
+		`    </item>`,
+		`  </channel>`,
+		`</rss>`,
+	}
 }

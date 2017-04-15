@@ -1,12 +1,14 @@
-hash: 6dd49bdb55df72bf09f49f267cf8e43a2dd796cfc031f32164311a6e56f0f291
-updated: 2017-04-10T20:06:47.292097953-04:00
+hash: 6ade2136143cebc7294aefeccb0095636b96d52ea471b918791802bf46b7b283
+updated: 2017-04-15T19:23:30.568764445-04:00
 imports:
-- name: github.com/gorilla/feeds
-  version: 441264de03a8117ed530ae8e049d8f601a33a099
+- name: github.com/eduncan911/podcast
+  version: b2888626672c83990148ef3c246fc9ece499d2b8
 - name: github.com/guywithnose/commandBuilder
   version: 72671e92f93f868498562b56fdf6ad43047e010c
 - name: github.com/kennygrant/sanitize
   version: 6a0bfdde8629a3a3a7418a7eae45c54154692514
+- name: github.com/pkg/errors
+  version: ff09b135c25aae272398c51a07235b90a75aa4f0
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:

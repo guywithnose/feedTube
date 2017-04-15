@@ -13,4 +13,5 @@ import:
 - package: google.golang.org/api
   subpackages:
   - youtube/v1
-- package: github.com/gorilla/feeds
+- package: github.com/eduncan911/podcast
+  version: ^1.3.0

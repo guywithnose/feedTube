@@ -3,74 +3,108 @@ package command
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gorilla/feeds"
+	"github.com/eduncan911/podcast"
 	"github.com/guywithnose/commandBuilder"
 	"github.com/urfave/cli"
 )
 
 type youtubeItem struct {
-	feeds.Item
+	podcast.Item
 	Filename string
 }
 
 func handleVideos(
 	c *cli.Context,
 	videos <-chan *youtubeItem,
-	info *feeds.Feed,
+	feed *podcast.Podcast,
 	outputFolder,
-	xmlFile,
+	xmlFileName,
 	baseURL string,
 	cmdBuilder commandBuilder.Builder,
-) error {
-	filter := c.String("filter")
+) ([]string, error) {
+	canBuildXML := false
+	if xmlFileName != "" {
+		if baseURL == "" {
+			return nil, cli.NewExitError("You must specify an baseURL", 1)
+		}
 
-	rssVideos := make([]*youtubeItem, 0)
-	for video := range videos {
-		if (filter != "" && !strings.Contains(video.Title, filter)) || video.Id == "" {
+		canBuildXML = true
+	}
+
+	filter := c.String("filter")
+	now := time.Now()
+	feed.AddLastBuildDate(&now)
+	feed.Generator = ""
+
+	downloadedFiles := make([]string, 0, len(videos))
+	for item := range videos {
+		if (filter != "" && !strings.Contains(item.Title, filter)) || item.GUID == "" {
 			continue
 		}
 
-		if _, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, video.Filename)); os.IsNotExist(err) {
-			downloadVideo(outputFolder, video.Id, video.Filename, cmdBuilder, c.App.Writer)
-		}
-
-		rssVideos = append(rssVideos, video)
+		handleItem(outputFolder, baseURL, item, feed, canBuildXML, cmdBuilder, c.App.Writer, c.App.ErrWriter)
+		downloadedFiles = append(downloadedFiles, fmt.Sprintf("%s.mp3", item.Filename))
 	}
 
-	if c.Bool("cleanupUnrelatedFiles") {
-		err := cleanupUnrelatedFiles(rssVideos, outputFolder, c.App.ErrWriter)
+	if canBuildXML {
+		xmlFile, err := os.Create(xmlFileName)
 		if err != nil {
-			return err
+			return nil, err
 		}
+
+		return downloadedFiles, feed.Encode(xmlFile)
 	}
 
-	if xmlFile == "" {
-		return nil
-	}
-
-	if baseURL == "" {
-		return cli.NewExitError("You must specify an baseURL", 1)
-	}
-
-	rss := buildRssFile(rssVideos, outputFolder, baseURL, info)
-
-	return ioutil.WriteFile(xmlFile, []byte(rss), 0644)
+	return downloadedFiles, nil
 }
 
-func cleanupUnrelatedFiles(videos []*youtubeItem, outputFolder string, writer io.Writer) error {
+func handleItem(
+	outputFolder,
+	baseURL string,
+	item *youtubeItem,
+	feed *podcast.Podcast,
+	canBuildXML bool,
+	cmdBuilder commandBuilder.Builder,
+	writer io.Writer,
+	errWriter io.Writer,
+) {
+	if _, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, item.Filename)); os.IsNotExist(err) {
+		downloadVideo(outputFolder, item.GUID, item.Filename, cmdBuilder, writer)
+	}
+
+	if canBuildXML {
+		var length int64
+		fileInfo, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, item.Filename))
+		if err == nil {
+			length = fileInfo.Size()
+		}
+		link := fmt.Sprintf("%s/%s.mp3", baseURL, item.Filename)
+
+		item.AddEnclosure(link, podcast.MP3, length)
+
+		numItems, err := feed.AddItem(item.Item)
+		if err != nil {
+			fmt.Fprintf(errWriter, "Could not parse item to xml: %v", err)
+		}
+
+		// podcast library wants to set the GUID as the link
+		feed.Items[numItems-1].GUID = item.Item.GUID
+	}
+}
+
+func cleanupUnrelatedFiles(downloadedFiles []string, outputFolder, xmlFileName string, writer io.Writer) error {
 	dir, _ := os.Open(outputFolder)
 	files, _ := dir.Readdir(-1)
+	// TODO get absolute path of xmlFileName
 
 fileLoop:
 	for _, file := range files {
-		for _, video := range videos {
-			if file.Name() == fmt.Sprintf("%s.mp3", video.Filename) {
+		for _, downloadedFile := range downloadedFiles {
+			if file.Name() == downloadedFile || fmt.Sprintf("%s/%s", outputFolder, file.Name()) == xmlFileName {
 				continue fileLoop
 			}
 
@@ -111,28 +145,4 @@ func downloadVideo(outputFolder, videoID, fileName string, cmdBuilder commandBui
 	}
 
 	return true
-}
-
-func buildRssFile(items []*youtubeItem, outputFolder, baseURL string, feed *feeds.Feed) string {
-	feed.Updated = time.Now()
-	feed.Link = &feeds.Link{}
-
-	for _, item := range items {
-		var length int64
-		fileInfo, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, item.Filename))
-		if err == nil {
-			length = fileInfo.Size()
-		}
-
-		item.Link = &feeds.Link{
-			Href:   fmt.Sprintf("%s/%s.mp3", baseURL, item.Filename),
-			Type:   "audio/mpeg",
-			Length: strconv.FormatInt(length, 10),
-		}
-
-		feed.Items = append(feed.Items, &item.Item)
-	}
-
-	xml, _ := feed.ToRss()
-	return xml
 }
