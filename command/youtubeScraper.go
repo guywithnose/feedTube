@@ -123,49 +123,49 @@ func getVideosForPlaylist(apiKey, playlistID string, writer io.Writer) (<-chan *
 	return videos, info, nil
 }
 
-func getChannelInfo(apiKey, channel string) (string, *podcast.Podcast, error) {
-	id, title, description, idErr := getChannelByID(apiKey, channel)
+func getChannelInfo(apiKey, channelID string) (string, *podcast.Podcast, error) {
+	channel, idErr := getChannelByID(apiKey, channelID)
 	if idErr != nil {
 		var err error
-		id, title, description, err = getChannelByName(apiKey, channel)
+		channel, err = getChannelByName(apiKey, channelID)
 		if err != nil {
 			return "", nil, fmt.Errorf("%v: %v", idErr, err)
 		}
 	}
 
 	now := time.Now()
-	info := podcast.New(title, "", description, &now, &now)
-	return id, &info, nil
+	info := podcast.New(channel.Snippet.Title, fmt.Sprintf("https://www.youtube.com/channel/%s", channel.Id), channel.Snippet.Description, &now, &now)
+	return channel.Id, &info, nil
 }
 
-func getChannelByName(apiKey, channelName string) (string, string, string, error) {
+func getChannelByName(apiKey, channelName string) (*youtube.Channel, error) {
 	youtubeService := getYoutubeService(apiKey)
 	listCall := youtubeService.Channels.List("snippet").ForUsername(channelName)
 	items, err := makeChannelRequest(listCall)
 	if err != nil {
-		return "", "", "", err
+		return nil, err
 	}
 
 	if len(items) == 0 {
-		return "", "", "", fmt.Errorf("Channel %s not found", channelName)
+		return nil, fmt.Errorf("Channel %s not found", channelName)
 	}
 
-	return items[0].Id, items[0].Snippet.Title, items[0].Snippet.Description, nil
+	return items[0], nil
 }
 
-func getChannelByID(apiKey, channelName string) (string, string, string, error) {
+func getChannelByID(apiKey, channelName string) (*youtube.Channel, error) {
 	youtubeService := getYoutubeService(apiKey)
 	listCall := youtubeService.Channels.List("snippet").Id(channelName)
 	items, err := makeChannelRequest(listCall)
 	if err != nil {
-		return "", "", "", err
+		return nil, err
 	}
 
 	if len(items) == 0 {
-		return "", "", "", fmt.Errorf("Channel ID %s not found", channelName)
+		return nil, fmt.Errorf("Channel ID %s not found", channelName)
 	}
 
-	return items[0].Id, items[0].Snippet.Title, items[0].Snippet.Description, nil
+	return items[0], nil
 }
 
 func makeChannelRequest(listCall *youtube.ChannelsListCall) ([]*youtube.Channel, error) {
@@ -190,7 +190,13 @@ func getPlaylistInfo(apiKey, playlistID string) (*podcast.Podcast, error) {
 	}
 
 	now := time.Now()
-	feed := podcast.New(resp.Items[0].Snippet.Title, "", resp.Items[0].Snippet.Description, &now, &now)
+	feed := podcast.New(
+		resp.Items[0].Snippet.Title,
+		fmt.Sprintf("https://www.youtube.com/playlist?list=%s", playlistID),
+		resp.Items[0].Snippet.Description,
+		&now,
+		&now,
+	)
 	return &feed, nil
 }
 

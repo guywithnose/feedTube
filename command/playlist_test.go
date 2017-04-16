@@ -58,7 +58,7 @@ func TestCmdPlaylist(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedPlaylistXml(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedPlaylistXML(xmlLines[7:9]), xmlLines)
 }
 
 func TestCmdPlaylistCleanup(t *testing.T) {
@@ -103,7 +103,7 @@ func TestCmdPlaylistCleanup(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedPlaylistXml(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedPlaylistXML(xmlLines[7:9]), xmlLines)
 	_, err = os.Stat(unrelatedFile)
 	assert.True(t, os.IsNotExist(err), "Unrelated file was not removed")
 	_, err = os.Stat(relatedFile)
@@ -137,7 +137,11 @@ func TestCmdPlaylistCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 	}
 	app, writer, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.Bool("cleanupUnrelatedFiles", true, "doc")
-	assert.EqualError(t, CmdPlaylist(cb)(cli.NewContext(app, set, nil)), "Could not remove unrelated file: remove /tmp/testFeedTube/unrelated: directory not empty")
+	assert.EqualError(
+		t,
+		CmdPlaylist(cb)(cli.NewContext(app, set, nil)),
+		"Could not remove unrelated file: remove /tmp/testFeedTube/unrelated: directory not empty",
+	)
 	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 	assert.Equal(
@@ -154,7 +158,7 @@ func TestCmdPlaylistCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedPlaylistXml(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedPlaylistXML(xmlLines[7:9]), xmlLines)
 	_, err = os.Stat(unrelatedFile)
 	assert.False(t, os.IsNotExist(err), "Unrelated file was not removed")
 	_, err = os.Stat(relatedFile)
@@ -192,7 +196,7 @@ func TestCmdPlaylistFilter(t *testing.T) {
 		`<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">`,
 		`  <channel>`,
 		`    <title>playlistTitle</title>`,
-		`    <link></link>`,
+		`    <link>https://www.youtube.com/playlist?list=awesome</link>`,
 		`    <description>playlistDescription</description>`,
 		`    <language>en-us</language>`,
 		xmlLines[7],
@@ -485,13 +489,13 @@ func getDefaultPlaylistResponses() map[string]string {
 	return responses
 }
 
-func getExpectedPlaylistXml(dateLine []string) []string {
+func getExpectedPlaylistXML(dateLine []string) []string {
 	return []string{
 		`<?xml version="1.0" encoding="UTF-8"?>`,
 		`<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">`,
 		`  <channel>`,
 		`    <title>playlistTitle</title>`,
-		`    <link></link>`,
+		`    <link>https://www.youtube.com/playlist?list=awesome</link>`,
 		`    <description>playlistDescription</description>`,
 		`    <language>en-us</language>`,
 		dateLine[0],

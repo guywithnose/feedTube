@@ -58,7 +58,7 @@ func TestCmdChannel(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedChannelXml(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedChannelXML(xmlLines[7:9]), xmlLines)
 }
 
 func TestCmdChannelInvalidXmlFile(t *testing.T) {
@@ -138,7 +138,7 @@ func TestCmdChannelById(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedChannelXml(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedChannelXML(xmlLines[7:9]), xmlLines)
 }
 
 func TestCmdChannelNoRedownload(t *testing.T) {
@@ -184,7 +184,7 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 			`<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">`,
 			`  <channel>`,
 			`    <title>t</title>`,
-			`    <link></link>`,
+			`    <link>https://www.youtube.com/channel/awesomeChannelId</link>`,
 			`    <description>d</description>`,
 			`    <language>en-us</language>`,
 			xmlLines[7],
@@ -254,7 +254,7 @@ func TestCmdChannelCleanup(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedChannelXml(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedChannelXML(xmlLines[7:9]), xmlLines)
 	_, err = os.Stat(unrelatedFile)
 	assert.True(t, os.IsNotExist(err), "Unrelated file was not removed")
 	_, err = os.Stat(relatedFile)
@@ -399,7 +399,7 @@ func TestCmdChannelAfter(t *testing.T) {
 		`<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">`,
 		`  <channel>`,
 		`    <title>t</title>`,
-		`    <link></link>`,
+		`    <link>https://www.youtube.com/channel/awesomeChannelId</link>`,
 		`    <description>d</description>`,
 		`    <language>en-us</language>`,
 		xmlLines[7],
@@ -642,13 +642,13 @@ func getDefaultChannelResponses() map[string]string {
 	return responses
 }
 
-func getExpectedChannelXml(dateLine []string) []string {
+func getExpectedChannelXML(dateLine []string) []string {
 	return []string{
 		`<?xml version="1.0" encoding="UTF-8"?>`,
 		`<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">`,
 		`  <channel>`,
 		`    <title>t</title>`,
-		`    <link></link>`,
+		`    <link>https://www.youtube.com/channel/awesomeChannelId</link>`,
 		`    <description>d</description>`,
 		`    <language>en-us</language>`,
 		dateLine[0],

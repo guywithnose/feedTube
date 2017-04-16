@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -99,7 +100,10 @@ func handleItem(
 func cleanupUnrelatedFiles(downloadedFiles []string, outputFolder, xmlFileName string, writer io.Writer) error {
 	dir, _ := os.Open(outputFolder)
 	files, _ := dir.Readdir(-1)
-	// TODO get absolute path of xmlFileName
+	absoluteXMLFileName, err := filepath.Abs(xmlFileName)
+	if err == nil {
+		xmlFileName = absoluteXMLFileName
+	}
 
 fileLoop:
 	for _, file := range files {
