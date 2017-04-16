@@ -201,6 +201,10 @@ func TestCmdPlaylistFilter(t *testing.T) {
 		`    <language>en-us</language>`,
 		xmlLines[7],
 		xmlLines[8],
+		`    <image>`,
+		`      <url>https://images.com/thumb.jpg</url>`,
+		`    </image>`,
+		`    <itunes:image href="https://images.com/thumb.jpg"></itunes:image>`,
 		`    <item>`,
 		`      <guid>vId2</guid>`,
 		`      <title>t2</title>`,
@@ -208,6 +212,7 @@ func TestCmdPlaylistFilter(t *testing.T) {
 		`      <description>d2 https://youtu.be/vId2</description>`,
 		`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
 		`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
+		`      <itunes:image href="https://images.com/thumb.jpg"></itunes:image>`,
 		`    </item>`,
 		`  </channel>`,
 		`</rss>`,
@@ -381,6 +386,11 @@ func TestCmdPlaylistYoutubeSearchInvalidVideos(t *testing.T) {
 					ResourceId: &youtube.ResourceId{
 						VideoId: "vId1",
 					},
+					Thumbnails: &youtube.ThumbnailDetails{
+						Default: &youtube.Thumbnail{
+							Url: "https://images.com/vid1Thumb.jpg",
+						},
+					},
 				},
 			},
 			{
@@ -444,6 +454,11 @@ func getDefaultPlaylistResponses() map[string]string {
 				Snippet: &youtube.PlaylistSnippet{
 					Title:       "playlistTitle",
 					Description: "playlistDescription",
+					Thumbnails: &youtube.ThumbnailDetails{
+						Default: &youtube.Thumbnail{
+							Url: "https://images.com/thumb.jpg",
+						},
+					},
 				},
 			},
 		},
@@ -461,6 +476,11 @@ func getDefaultPlaylistResponses() map[string]string {
 					PublishedAt: "2007-01-02T15:04:05Z",
 					ResourceId: &youtube.ResourceId{
 						VideoId: "vId1",
+					},
+					Thumbnails: &youtube.ThumbnailDetails{
+						Default: &youtube.Thumbnail{
+							Url: "https://images.com/vid1Thumb.jpg",
+						},
 					},
 				},
 			},
@@ -500,6 +520,10 @@ func getExpectedPlaylistXML(dateLine []string) []string {
 		`    <language>en-us</language>`,
 		dateLine[0],
 		dateLine[1],
+		`    <image>`,
+		`      <url>https://images.com/thumb.jpg</url>`,
+		`    </image>`,
+		`    <itunes:image href="https://images.com/thumb.jpg"></itunes:image>`,
 		`    <item>`,
 		`      <guid>vId1</guid>`,
 		`      <title>t</title>`,
@@ -507,6 +531,7 @@ func getExpectedPlaylistXML(dateLine []string) []string {
 		`      <description>d https://youtu.be/vId1</description>`,
 		`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
 		`      <enclosure url="http://foo.com/t-vId1.mp3" length="0" type="audio/mpeg"></enclosure>`,
+		`      <itunes:image href="https://images.com/vid1Thumb.jpg"></itunes:image>`,
 		`    </item>`,
 		`    <item>`,
 		`      <guid>vId2</guid>`,
@@ -515,6 +540,7 @@ func getExpectedPlaylistXML(dateLine []string) []string {
 		`      <description>d2 https://youtu.be/vId2</description>`,
 		`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
 		`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
+		`      <itunes:image href="https://images.com/thumb.jpg"></itunes:image>`,
 		`    </item>`,
 		`  </channel>`,
 		`</rss>`,

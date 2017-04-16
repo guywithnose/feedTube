@@ -70,6 +70,10 @@ func parseSearchResults(results []*youtube.SearchResult, videos chan<- *youtubeI
 			},
 			Filename: fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(result.Snippet.Title), " ", "-", -1), result.Id.VideoId),
 		}
+		if result.Snippet.Thumbnails != nil && result.Snippet.Thumbnails.Default != nil {
+			item.AddImage(result.Snippet.Thumbnails.Default.Url)
+		}
+
 		item.AddPubDate(&publishedTime)
 		videos <- item
 	}
@@ -92,6 +96,10 @@ func parsePlaylistItems(results []*youtube.PlaylistItem, videos chan<- *youtubeI
 			},
 			Filename: fmt.Sprintf("%s-%s", strings.Replace(sanitize.BaseName(result.Snippet.Title), " ", "-", -1), result.Snippet.ResourceId.VideoId),
 		}
+		if result.Snippet.Thumbnails != nil && result.Snippet.Thumbnails.Default != nil {
+			item.AddImage(result.Snippet.Thumbnails.Default.Url)
+		}
+
 		item.AddPubDate(&publishedTime)
 		videos <- item
 	}
@@ -135,6 +143,10 @@ func getChannelInfo(apiKey, channelID string) (string, *podcast.Podcast, error) 
 
 	now := time.Now()
 	info := podcast.New(channel.Snippet.Title, fmt.Sprintf("https://www.youtube.com/channel/%s", channel.Id), channel.Snippet.Description, &now, &now)
+	if channel.Snippet.Thumbnails != nil && channel.Snippet.Thumbnails.Default != nil {
+		info.AddImage(channel.Snippet.Thumbnails.Default.Url)
+	}
+
 	return channel.Id, &info, nil
 }
 
@@ -197,6 +209,9 @@ func getPlaylistInfo(apiKey, playlistID string) (*podcast.Podcast, error) {
 		&now,
 		&now,
 	)
+	if resp.Items[0].Snippet.Thumbnails != nil && resp.Items[0].Snippet.Thumbnails.Default != nil {
+		feed.AddImage(resp.Items[0].Snippet.Thumbnails.Default.Url)
+	}
 	return &feed, nil
 }
 
