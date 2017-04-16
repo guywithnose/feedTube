@@ -37,6 +37,10 @@ var flags = []cli.Flag{
 			"This can be useful if you are maintaining a playlist and you want to remove old files when you remove them from the playlist. " +
 			"DO NOT use this if multiple feeds are sharing an output folder.",
 	},
+	cli.StringFlag{
+		Name:  "overrideTitle, t",
+		Usage: "Manually set the feed title",
+	},
 }
 
 // Commands defines the commands that can be called on hostBuilder

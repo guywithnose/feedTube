@@ -19,13 +19,17 @@ func CmdPlaylist(cmdBuilder commandBuilder.Builder) func(c *cli.Context) error {
 
 		playlistID := c.Args().Get(0)
 
-		videos, channel, err := getVideosForPlaylist(apiKey, playlistID, c.App.ErrWriter)
+		videos, feed, err := getVideosForPlaylist(apiKey, playlistID, c.App.ErrWriter)
 		if err != nil {
 			return err
 		}
 
+		if c.String("overrideTitle") != "" {
+			feed.Title = c.String("overrideTitle")
+		}
+
 		xmlFileName := c.String("xmlFile")
-		downloadedFiles, err := handleVideos(c, videos, channel, outputFolder, xmlFileName, c.String("baseURL"), cmdBuilder)
+		downloadedFiles, err := handleVideos(c, videos, feed, outputFolder, xmlFileName, c.String("baseURL"), cmdBuilder)
 		if err != nil {
 			return err
 		}

@@ -61,6 +61,87 @@ func TestCmdPlaylist(t *testing.T) {
 	assert.Equal(t, getExpectedPlaylistXML(xmlLines[8:10]), xmlLines)
 }
 
+func TestCmdPlaylistOverrideTitle(t *testing.T) {
+	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
+	defer removeFile(t, outputFolder)
+	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
+	ts := getTestServer(getDefaultPlaylistResponses())
+	defer ts.Close()
+	youtubeAPIURLBase = ts.URL
+	cb := &commandBuilder.Test{
+		ExpectedCommands: []*commandBuilder.ExpectedCommand{
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+				"video 1 output",
+				0,
+			),
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"video 2 output",
+				1,
+			),
+		},
+	}
+	app, writer, _, set := getBaseAppAndFlagSet(t, outputFolder)
+	set.String("overrideTitle", "ovride", "doc")
+	assert.Nil(t, CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
+	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []error(nil), cb.Errors)
+	assert.Equal(
+		t,
+		[]string{
+			"video 1 output",
+			"video 2 output",
+			"Could not download t2-vId2: exit status 1",
+			"Params: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '--audio-quality' '0' '-o' '/tmp/testFeedTube/t2-vId2.%(ext)s' 'https://youtu.be/vId2'",
+			"",
+		},
+		strings.Split(writer.String(), "\n"),
+	)
+	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
+	assert.Nil(t, err)
+	xmlLines := strings.Split(string(xmlBytes), "\n")
+	expectedXMLLines := []string{
+		`<?xml version="1.0" encoding="UTF-8"?>`,
+		`<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">`,
+		`  <channel>`,
+		`    <title>ovride</title>`,
+		`    <link>https://www.youtube.com/playlist?list=awesome</link>`,
+		`    <description>playlistDescription</description>`,
+		`    <generator>feedTube v0.2.0 (github.com/guywithnose/feedTube)</generator>`,
+		`    <language>en-us</language>`,
+		xmlLines[8],
+		xmlLines[9],
+		`    <image>`,
+		`      <url>https://images.com/thumb.jpg</url>`,
+		`    </image>`,
+		`    <itunes:image href="https://images.com/thumb.jpg"></itunes:image>`,
+		`    <item>`,
+		`      <guid>vId1</guid>`,
+		`      <title>t</title>`,
+		`      <link>https://youtu.be/vId1</link>`,
+		`      <description>d https://youtu.be/vId1</description>`,
+		`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
+		`      <enclosure url="http://foo.com/t-vId1.mp3" length="0" type="audio/mpeg"></enclosure>`,
+		`      <itunes:image href="https://images.com/vid1Thumb.jpg"></itunes:image>`,
+		`    </item>`,
+		`    <item>`,
+		`      <guid>vId2</guid>`,
+		`      <title>t2</title>`,
+		`      <link>https://youtu.be/vId2</link>`,
+		`      <description>d2 https://youtu.be/vId2</description>`,
+		`      <pubDate>Mon, 02 Jan 2006 15:04:05 +0000</pubDate>`,
+		`      <enclosure url="http://foo.com/t2-vId2.mp3" length="0" type="audio/mpeg"></enclosure>`,
+		`      <itunes:image href="https://images.com/thumb.jpg"></itunes:image>`,
+		`    </item>`,
+		`  </channel>`,
+		`</rss>`,
+	}
+	assert.Equal(t, expectedXMLLines, xmlLines)
+}
+
 func TestCmdPlaylistCleanup(t *testing.T) {
 	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
 	defer removeFile(t, outputFolder)

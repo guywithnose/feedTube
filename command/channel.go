@@ -24,6 +24,10 @@ func CmdChannel(cmdBuilder commandBuilder.Builder) func(c *cli.Context) error {
 			return err
 		}
 
+		if c.String("overrideTitle") != "" {
+			feedInfo.Title = c.String("overrideTitle")
+		}
+
 		xmlFileName := c.String("xmlFile")
 		downloadedFiles, err := handleVideos(c, videos, feedInfo, outputFolder, xmlFileName, c.String("baseURL"), cmdBuilder)
 		if err != nil {
