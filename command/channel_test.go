@@ -58,7 +58,7 @@ func TestCmdChannel(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedChannelXML(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedChannelXML(xmlLines[8:10]), xmlLines)
 }
 
 func TestCmdChannelInvalidXmlFile(t *testing.T) {
@@ -138,7 +138,7 @@ func TestCmdChannelById(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedChannelXML(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedChannelXML(xmlLines[8:10]), xmlLines)
 }
 
 func TestCmdChannelNoRedownload(t *testing.T) {
@@ -186,9 +186,10 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 			`    <title>t</title>`,
 			`    <link>https://www.youtube.com/channel/awesomeChannelId</link>`,
 			`    <description>d</description>`,
+			`    <generator>feedTube v0.2.0 (github.com/guywithnose/feedTube)</generator>`,
 			`    <language>en-us</language>`,
-			xmlLines[7],
 			xmlLines[8],
+			xmlLines[9],
 			`    <image>`,
 			`      <url>https://images.com/thumb.jpg</url>`,
 			`    </image>`,
@@ -260,7 +261,7 @@ func TestCmdChannelCleanup(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedChannelXML(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedChannelXML(xmlLines[8:10]), xmlLines)
 	_, err = os.Stat(unrelatedFile)
 	assert.True(t, os.IsNotExist(err), "Unrelated file was not removed")
 	_, err = os.Stat(relatedFile)
@@ -412,9 +413,10 @@ func TestCmdChannelAfter(t *testing.T) {
 		`    <title>t</title>`,
 		`    <link>https://www.youtube.com/channel/awesomeChannelId</link>`,
 		`    <description>d</description>`,
+		`    <generator>feedTube v0.2.0 (github.com/guywithnose/feedTube)</generator>`,
 		`    <language>en-us</language>`,
-		xmlLines[7],
 		xmlLines[8],
+		xmlLines[9],
 		`    <image>`,
 		`      <url>https://images.com/thumb.jpg</url>`,
 		`    </image>`,
@@ -681,6 +683,7 @@ func getExpectedChannelXML(dateLine []string) []string {
 		`    <title>t</title>`,
 		`    <link>https://www.youtube.com/channel/awesomeChannelId</link>`,
 		`    <description>d</description>`,
+		`    <generator>feedTube v0.2.0 (github.com/guywithnose/feedTube)</generator>`,
 		`    <language>en-us</language>`,
 		dateLine[0],
 		dateLine[1],

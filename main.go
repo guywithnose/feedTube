@@ -3,14 +3,15 @@ package main
 import (
 	"os"
 
+	"github.com/guywithnose/feedTube/command"
 	"github.com/urfave/cli"
 )
 
 func main() {
 
 	app := cli.NewApp()
-	app.Name = Name
-	app.Version = Version
+	app.Name = command.Name
+	app.Version = command.Version
 	app.Author = "Robert Bittle"
 	app.Email = "guywithnose@gmail.com"
 	app.Usage = "feedTube build channelName"

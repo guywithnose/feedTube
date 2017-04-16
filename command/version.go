@@ -1,4 +1,4 @@
-package main
+package command
 
 // Name is the name of this program
 const Name string = "feedTube"

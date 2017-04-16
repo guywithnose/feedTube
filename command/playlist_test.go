@@ -58,7 +58,7 @@ func TestCmdPlaylist(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedPlaylistXML(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedPlaylistXML(xmlLines[8:10]), xmlLines)
 }
 
 func TestCmdPlaylistCleanup(t *testing.T) {
@@ -103,7 +103,7 @@ func TestCmdPlaylistCleanup(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedPlaylistXML(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedPlaylistXML(xmlLines[8:10]), xmlLines)
 	_, err = os.Stat(unrelatedFile)
 	assert.True(t, os.IsNotExist(err), "Unrelated file was not removed")
 	_, err = os.Stat(relatedFile)
@@ -158,7 +158,7 @@ func TestCmdPlaylistCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedPlaylistXML(xmlLines[7:9]), xmlLines)
+	assert.Equal(t, getExpectedPlaylistXML(xmlLines[8:10]), xmlLines)
 	_, err = os.Stat(unrelatedFile)
 	assert.False(t, os.IsNotExist(err), "Unrelated file was not removed")
 	_, err = os.Stat(relatedFile)
@@ -198,9 +198,10 @@ func TestCmdPlaylistFilter(t *testing.T) {
 		`    <title>playlistTitle</title>`,
 		`    <link>https://www.youtube.com/playlist?list=awesome</link>`,
 		`    <description>playlistDescription</description>`,
+		`    <generator>feedTube v0.2.0 (github.com/guywithnose/feedTube)</generator>`,
 		`    <language>en-us</language>`,
-		xmlLines[7],
 		xmlLines[8],
+		xmlLines[9],
 		`    <image>`,
 		`      <url>https://images.com/thumb.jpg</url>`,
 		`    </image>`,
@@ -517,6 +518,7 @@ func getExpectedPlaylistXML(dateLine []string) []string {
 		`    <title>playlistTitle</title>`,
 		`    <link>https://www.youtube.com/playlist?list=awesome</link>`,
 		`    <description>playlistDescription</description>`,
+		`    <generator>feedTube v0.2.0 (github.com/guywithnose/feedTube)</generator>`,
 		`    <language>en-us</language>`,
 		dateLine[0],
 		dateLine[1],

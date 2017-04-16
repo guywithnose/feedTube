@@ -39,7 +39,7 @@ func handleVideos(
 	filter := c.String("filter")
 	now := time.Now()
 	feed.AddLastBuildDate(&now)
-	feed.Generator = ""
+	feed.Generator = fmt.Sprintf("%s v%s (github.com/guywithnose/feedTube)", Name, Version)
 
 	downloadedFiles := make([]string, 0, len(videos))
 	for item := range videos {
