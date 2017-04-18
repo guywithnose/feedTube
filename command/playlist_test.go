@@ -159,6 +159,12 @@ func TestCmdPlaylistCleanup(t *testing.T) {
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
 			commandBuilder.NewExpectedCommand(
 				"",
+				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
+				"Duration: 02:13:45.22, start",
+				1,
+			),
+			commandBuilder.NewExpectedCommand(
+				"",
 				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
 				"video 2 output",
 				1,
@@ -180,7 +186,11 @@ func TestCmdPlaylistCleanup(t *testing.T) {
 		},
 		strings.Split(writer.String(), "\n"),
 	)
-	assert.Equal(t, "Removing file: /tmp/testFeedTube/unrelated.mp3\n", errWriter.String())
+	assert.Equal(
+		t,
+		"could not read duration of /tmp/testFeedTube/t-vId1.mp3 using ffprobe: exit status 1\nRemoving file: /tmp/testFeedTube/unrelated.mp3\n",
+		errWriter.String(),
+	)
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
@@ -210,6 +220,12 @@ func TestCmdPlaylistCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
 			commandBuilder.NewExpectedCommand(
 				"",
+				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
+				"Duration: 02:1E:45.22, start",
+				0,
+			),
+			commandBuilder.NewExpectedCommand(
+				"",
 				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
 				"video 2 output",
 				1,
@@ -235,7 +251,12 @@ func TestCmdPlaylistCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 		},
 		strings.Split(writer.String(), "\n"),
 	)
-	assert.Equal(t, "Removing file: /tmp/testFeedTube/unrelated\n", errWriter.String())
+	assert.Equal(
+		t,
+		"could not read duration of /tmp/testFeedTube/t-vId1.mp3 using ffprobe: Could not parse duration from output: Duration: 02:1E:45.22, start\n"+
+			"Removing file: /tmp/testFeedTube/unrelated\n",
+		errWriter.String(),
+	)
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -79,9 +80,14 @@ func handleItem(
 
 	if canBuildXML {
 		var length int64
-		fileInfo, err := os.Stat(fmt.Sprintf("%s/%s.mp3", outputFolder, item.Filename))
+		fileName := fmt.Sprintf("%s/%s.mp3", outputFolder, item.Filename)
+		fileInfo, err := os.Stat(fileName)
 		if err == nil {
 			length = fileInfo.Size()
+			item.IDuration, err = getDuration(fileName, cmdBuilder)
+			if err != nil {
+				fmt.Fprintf(errWriter, "could not read duration of %s using ffprobe: %v\n", fileName, err)
+			}
 		}
 		link := fmt.Sprintf("%s/%s.mp3", baseURL, item.Filename)
 
@@ -95,6 +101,27 @@ func handleItem(
 		// podcast library wants to set the GUID as the link
 		feed.Items[numItems-1].GUID = item.Item.GUID
 	}
+}
+
+func getDuration(fileName string, cmdBuilder commandBuilder.Builder) (string, error) {
+	cmd := cmdBuilder.CreateCommand(
+		"",
+		"/usr/bin/ffprobe",
+		fileName,
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	durationRegex, _ := regexp.Compile(`.*Duration: (\d\d:\d\d:\d\d)\.\d\d, start.*`)
+	matches := durationRegex.FindSubmatch(out)
+
+	if len(matches) < 2 {
+		return "", fmt.Errorf("Could not parse duration from output: %s", out)
+	}
+
+	return string(matches[1]), nil
 }
 
 func cleanupUnrelatedFiles(downloadedFiles []string, outputFolder, xmlFileName string, writer io.Writer) error {

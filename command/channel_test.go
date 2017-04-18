@@ -239,6 +239,12 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
 			commandBuilder.NewExpectedCommand(
 				"",
+				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
+				"Duration: 02:13:45.22, start",
+				0,
+			),
+			commandBuilder.NewExpectedCommand(
+				"",
 				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
 				"video 2 output",
 				1,
@@ -286,6 +292,7 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 			`      <pubDate>Tue, 02 Jan 2007 15:04:05 +0000</pubDate>`,
 			`      <enclosure url="http://foo.com/t-vId1.mp3" length="3" type="audio/mpeg"></enclosure>`,
 			`      <itunes:image href="https://images.com/vid1Thumb.jpg"></itunes:image>`,
+			`      <itunes:duration>02:13:45</itunes:duration>`,
 			`    </item>`,
 			`    <item>`,
 			`      <guid>vId2</guid>`,
@@ -322,6 +329,12 @@ func TestCmdChannelCleanup(t *testing.T) {
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
 			commandBuilder.NewExpectedCommand(
 				"",
+				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
+				"foo\nDuration: 02:13:45.22, startskskdjdk\ndkskskd",
+				0,
+			),
+			commandBuilder.NewExpectedCommand(
+				"",
 				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
 				"video 2 output",
 				1,
@@ -345,7 +358,9 @@ func TestCmdChannelCleanup(t *testing.T) {
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
-	assert.Equal(t, getExpectedChannelXML(xmlLines[8:10]), xmlLines)
+	expectedXML := getExpectedChannelXML(xmlLines[8:10])
+	expectedXML = append(expectedXML[:22], append([]string{`      <itunes:duration>02:13:45</itunes:duration>`}, expectedXML[22:]...)...)
+	assert.Equal(t, expectedXML, xmlLines)
 	_, err = os.Stat(unrelatedFile)
 	assert.True(t, os.IsNotExist(err), "Unrelated file was not removed")
 	_, err = os.Stat(relatedFile)
@@ -371,6 +386,12 @@ func TestCmdChannelCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 	set.Bool("cleanupUnrelatedFiles", true, "doc")
 	cb := &commandBuilder.Test{
 		ExpectedCommands: []*commandBuilder.ExpectedCommand{
+			commandBuilder.NewExpectedCommand(
+				"",
+				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
+				"Duration: 02:13:45.22, start",
+				0,
+			),
 			commandBuilder.NewExpectedCommand(
 				"",
 				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
