@@ -12,35 +12,21 @@ func CmdPlaylist(cmdBuilder commandBuilder.Builder) func(c *cli.Context) error {
 			return cli.NewExitError("Usage: \"feedTube playlist {playlistID}\"", 1)
 		}
 
-		outputFolder, apiKey, err := checkFlags(c)
+		err := checkFlags(c)
 		if err != nil {
 			return err
 		}
 
 		playlistID := c.Args().Get(0)
-
-		videos, feed, err := getVideosForPlaylist(apiKey, playlistID, c.App.ErrWriter)
+		items, playlistInfo, err := NewPlaylistScraper(c.String("apiKey")).GetVideosForPlaylist(playlistID)
 		if err != nil {
 			return err
 		}
 
 		if c.String("overrideTitle") != "" {
-			feed.Title = c.String("overrideTitle")
+			playlistInfo.Title = c.String("overrideTitle")
 		}
 
-		xmlFileName := c.String("xmlFile")
-		downloadedFiles, err := handleVideos(c, videos, feed, outputFolder, xmlFileName, c.String("baseURL"), cmdBuilder)
-		if err != nil {
-			return err
-		}
-
-		if c.Bool("cleanupUnrelatedFiles") {
-			err := cleanupUnrelatedFiles(downloadedFiles, outputFolder, xmlFileName, c.App.ErrWriter)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
+		return Build(c, cmdBuilder, items, playlistInfo)
 	}
 }

@@ -1,11 +1,7 @@
-package main
+package command
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/guywithnose/commandBuilder"
-	"github.com/guywithnose/feedTube/command"
 	"github.com/urfave/cli"
 )
 
@@ -49,8 +45,8 @@ var Commands = []cli.Command{
 		Name:         "channel",
 		Aliases:      []string{"c"},
 		Usage:        "Builds your rss file from a youtube channel",
-		Action:       command.CmdChannel(commandBuilder.Real{}),
-		BashComplete: command.Completion,
+		Action:       CmdChannel(commandBuilder.Real{}),
+		BashComplete: Completion,
 		Flags: append(
 			flags,
 			cli.StringFlag{
@@ -63,26 +59,8 @@ var Commands = []cli.Command{
 		Name:         "playlist",
 		Aliases:      []string{"p"},
 		Usage:        "Builds your rss file from a youtube playlist",
-		Action:       command.CmdPlaylist(commandBuilder.Real{}),
-		BashComplete: command.Completion,
+		Action:       CmdPlaylist(commandBuilder.Real{}),
+		BashComplete: Completion,
 		Flags:        flags,
 	},
-}
-
-// CommandNotFound runs when hostBuilder is invoked with an invalid command
-func CommandNotFound(c *cli.Context, command string) {
-	fmt.Fprintf(c.App.Writer, "%s: '%s' is not a %s command. See '%s --help'.", c.App.Name, command, c.App.Name, c.App.Name)
-	os.Exit(2)
-}
-
-// RootCompletion prints the list of root commands as the root completion method
-// This is similar to the default method, but it excludes aliases
-func RootCompletion(c *cli.Context) {
-	for _, command := range c.App.Commands {
-		if command.Hidden {
-			continue
-		}
-
-		fmt.Fprintf(c.App.Writer, "%s:%s\n", command.Name, command.Usage)
-	}
 }

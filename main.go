@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/guywithnose/feedTube/command"
@@ -8,18 +9,21 @@ import (
 )
 
 func main() {
-
 	app := cli.NewApp()
 	app.Name = command.Name
 	app.Version = command.Version
 	app.Author = "Robert Bittle"
 	app.Email = "guywithnose@gmail.com"
-	app.Usage = "feedTube build channelName"
+	app.Usage = "feedTube channel channelName"
 
-	app.Commands = Commands
-	app.CommandNotFound = CommandNotFound
+	app.Commands = command.Commands
+	app.CommandNotFound = func(c *cli.Context, command string) {
+		fmt.Fprintf(c.App.Writer, "%s: '%s' is not a %s command. See '%s --help'.", c.App.Name, command, c.App.Name, c.App.Name)
+		os.Exit(2)
+	}
+
 	app.EnableBashCompletion = true
-	app.BashComplete = RootCompletion
+	app.BashComplete = command.RootCompletion
 	app.ErrWriter = os.Stderr
 
 	err := app.Run(os.Args)
