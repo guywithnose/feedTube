@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/guywithnose/commandBuilder"
 	"github.com/guywithnose/feedTube/command"
+	"github.com/guywithnose/runner"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,9 +23,9 @@ func TestXMLBuilder(t *testing.T) {
 	xmlFileName := fmt.Sprintf("%s/xmlFile", outputFolder)
 	_, err := os.Create(relatedFile)
 	assert.Nil(t, err)
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
+	cb := &runner.Test{
+		ExpectedCommands: []*runner.ExpectedCommand{
+			runner.NewExpectedCommand(
 				"",
 				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
 				"foo\nDuration: 02:13:45.22, startskskdjdk\ndkskskd",
@@ -69,7 +69,7 @@ func TestXMLBuilder(t *testing.T) {
 		},
 	)
 	assert.Nil(t, err)
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 	xmlBytes, err := ioutil.ReadFile(xmlFileName)
 	require.Nil(t, err)
@@ -87,9 +87,9 @@ func TestXMLBuilderGetDurationFailure(t *testing.T) {
 	xmlFileName := fmt.Sprintf("%s/xmlFile", outputFolder)
 	_, err := os.Create(relatedFile)
 	assert.Nil(t, err)
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
+	cb := &runner.Test{
+		ExpectedCommands: []*runner.ExpectedCommand{
+			runner.NewExpectedCommand(
 				"",
 				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
 				"",
@@ -134,7 +134,7 @@ func TestXMLBuilderGetDurationFailure(t *testing.T) {
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, []error(nil), cb.Errors)
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	xmlBytes, err := ioutil.ReadFile(xmlFileName)
 	require.Nil(t, err)
 	xmlLines := strings.Split(string(xmlBytes), "\n")
@@ -150,9 +150,9 @@ func TestXMLBuilderInvalidtDuration(t *testing.T) {
 	xmlFileName := fmt.Sprintf("%s/xmlFile", outputFolder)
 	_, err := os.Create(relatedFile)
 	assert.Nil(t, err)
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
+	cb := &runner.Test{
+		ExpectedCommands: []*runner.ExpectedCommand{
+			runner.NewExpectedCommand(
 				"",
 				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
 				"foo\nDuration: 02:1E:45.22, startskskdjdk\ndkskskd",
@@ -196,7 +196,7 @@ func TestXMLBuilderInvalidtDuration(t *testing.T) {
 		},
 	)
 	assert.Nil(t, err)
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 	xmlBytes, err := ioutil.ReadFile(xmlFileName)
 	require.Nil(t, err)
@@ -213,9 +213,9 @@ func TestXMLBuilderInvalidtXmlFile(t *testing.T) {
 	xmlFileName := filepath.Join(outputFolder, "notadir", "xmlFile")
 	_, err := os.Create(relatedFile)
 	assert.Nil(t, err)
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
+	cb := &runner.Test{
+		ExpectedCommands: []*runner.ExpectedCommand{
+			runner.NewExpectedCommand(
 				"",
 				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
 				"foo\nDuration: 02:1E:45.22, startskskdjdk\ndkskskd",
@@ -269,9 +269,9 @@ func TestXMLBuilderInvalidVideo(t *testing.T) {
 	xmlFileName := fmt.Sprintf("%s/xmlFile", outputFolder)
 	_, err := os.Create(relatedFile)
 	assert.Nil(t, err)
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
+	cb := &runner.Test{
+		ExpectedCommands: []*runner.ExpectedCommand{
+			runner.NewExpectedCommand(
 				"",
 				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
 				"foo\nDuration: 02:13:45.22, startskskdjdk\ndkskskd",

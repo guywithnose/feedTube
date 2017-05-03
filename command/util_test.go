@@ -12,8 +12,8 @@ import (
 
 	youtube "google.golang.org/api/youtube/v3"
 
-	"github.com/guywithnose/commandBuilder"
 	"github.com/guywithnose/feedTube/command"
+	"github.com/guywithnose/runner"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
 )
@@ -23,7 +23,7 @@ func removeFile(t *testing.T, fileName string) {
 }
 
 func TestHelperProcess(*testing.T) {
-	commandBuilder.ErrorCodeHelper()
+	runner.ErrorCodeHelper()
 }
 
 func getTestServer(responses map[string]string) *httptest.Server {
@@ -66,8 +66,8 @@ func getBaseAppAndFlagSet(t *testing.T, outputFolder string) (*cli.App, *bytes.B
 func runErrorTest(
 	t *testing.T,
 	expectedError string,
-	cb *commandBuilder.Test,
-	cmdFunc func(commandBuilder.Builder) func(*cli.Context) error,
+	cb *runner.Test,
+	cmdFunc func(runner.Builder) func(*cli.Context) error,
 ) {
 	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
 	defer removeFile(t, outputFolder)

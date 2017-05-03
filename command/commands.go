@@ -1,7 +1,7 @@
 package command
 
 import (
-	"github.com/guywithnose/commandBuilder"
+	"github.com/guywithnose/runner"
 	"github.com/urfave/cli"
 )
 
@@ -45,7 +45,7 @@ var Commands = []cli.Command{
 		Name:         "channel",
 		Aliases:      []string{"c"},
 		Usage:        "Builds your rss file from a youtube channel",
-		Action:       CmdChannel(commandBuilder.Real{}),
+		Action:       CmdChannel(runner.Real{}),
 		BashComplete: Completion,
 		Flags: append(
 			flags,
@@ -59,7 +59,7 @@ var Commands = []cli.Command{
 		Name:         "playlist",
 		Aliases:      []string{"p"},
 		Usage:        "Builds your rss file from a youtube playlist",
-		Action:       CmdPlaylist(commandBuilder.Real{}),
+		Action:       CmdPlaylist(runner.Real{}),
 		BashComplete: Completion,
 		Flags:        flags,
 	},

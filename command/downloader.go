@@ -5,17 +5,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/guywithnose/commandBuilder"
+	"github.com/guywithnose/runner"
 )
 
 // Downloader downloads youtube videos
 type Downloader struct {
-	cmdBuilder   commandBuilder.Builder
+	cmdBuilder   runner.Builder
 	outputFolder string
 }
 
 // NewDownloader returns a new Downloader
-func NewDownloader(cmdBuilder commandBuilder.Builder, outputFolder string) *Downloader {
+func NewDownloader(cmdBuilder runner.Builder, outputFolder string) *Downloader {
 	return &Downloader{
 		cmdBuilder:   cmdBuilder,
 		outputFolder: outputFolder,
@@ -50,7 +50,7 @@ func (downloader Downloader) downloadVideo(videoID, fileName string) error {
 		fmt.Sprintf("%s/%s.%%(ext)s", downloader.outputFolder, fileName),
 		fmt.Sprintf("https://youtu.be/%s", videoID),
 	}
-	cmd := downloader.cmdBuilder.CreateCommand("", params...)
+	cmd := downloader.cmdBuilder.New("", params...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("could not download %s: %v\nParams: '%s': %s", fileName, err, strings.Join(params, "' '"), string(out))

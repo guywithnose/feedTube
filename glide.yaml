@@ -9,7 +9,7 @@ import:
   - html
 - package: github.com/stretchr/testify
   version: ^1.1.4
-- package: github.com/guywithnose/commandBuilder
+- package: github.com/guywithnose/runner
 - package: google.golang.org/api
   subpackages:
   - youtube/v1

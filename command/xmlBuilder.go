@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/eduncan911/podcast"
-	"github.com/guywithnose/commandBuilder"
+	"github.com/guywithnose/runner"
 )
 
 // XMLBuilder handles building RSS XML
 type XMLBuilder struct {
-	cmdBuilder   commandBuilder.Builder
+	cmdBuilder   runner.Builder
 	xmlFileName  string
 	outputFolder string
 	baseURL      string
@@ -21,7 +21,7 @@ type XMLBuilder struct {
 }
 
 // NewXMLBuilder returns a new XMLBuilder
-func NewXMLBuilder(cmdBuilder commandBuilder.Builder, xmlFileName, outputFolder, baseURL, generator string, channelInfo *ChannelInfo) *XMLBuilder {
+func NewXMLBuilder(cmdBuilder runner.Builder, xmlFileName, outputFolder, baseURL, generator string, channelInfo *ChannelInfo) *XMLBuilder {
 	now := time.Now()
 	feed := podcast.New(channelInfo.Title, channelInfo.Link, channelInfo.Description, &now, &now)
 	if channelInfo.Thumbnail != "" {
@@ -91,7 +91,7 @@ func getFileSize(fileName string) (int64, error) {
 }
 
 func (xmlBuilder XMLBuilder) getFileDuration(item *VideoData) (string, error) {
-	cmd := xmlBuilder.cmdBuilder.CreateCommand("", "/usr/bin/ffprobe", getFileName(xmlBuilder.outputFolder, item))
+	cmd := xmlBuilder.cmdBuilder.New("", "/usr/bin/ffprobe", getFileName(xmlBuilder.outputFolder, item))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", err

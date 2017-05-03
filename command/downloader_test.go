@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/guywithnose/commandBuilder"
+	"github.com/guywithnose/runner"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +15,7 @@ func TestDownloader(t *testing.T) {
 	cmdBuilder := getTestCommandBuilder(videos)
 	downloader := NewDownloader(cmdBuilder, outputFolder)
 	assert.Nil(t, downloader.DownloadVideos(videos))
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cmdBuilder.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cmdBuilder.ExpectedCommands)
 	assert.Equal(t, []error(nil), cmdBuilder.Errors)
 }
 
@@ -30,7 +30,7 @@ func TestDownloaderDoesntReDownloadExisitngFiles(t *testing.T) {
 	cmdBuilder := getTestCommandBuilder(videos[1:])
 	downloader := NewDownloader(cmdBuilder, outputFolder)
 	assert.Nil(t, downloader.DownloadVideos(videos))
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cmdBuilder.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cmdBuilder.ExpectedCommands)
 	assert.Equal(t, []error(nil), cmdBuilder.Errors)
 }
 
@@ -45,7 +45,7 @@ func TestDownloaderDownloadError(t *testing.T) {
 		"could not download t-vId1: exit status 1\nParams: '/usr/bin/youtube-dl' '-x' '--audio-format' 'mp3' '--audio-quality' '0' '-o' "+
 			"'/tmp/testFeedTube/t-vId1.%(ext)s' 'https://youtu.be/vId1': error downloading video vId1",
 	)
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cmdBuilder.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cmdBuilder.ExpectedCommands)
 	assert.Equal(t, []error(nil), cmdBuilder.Errors)
 }
 
@@ -57,26 +57,26 @@ func getVideoData(id, title string) *VideoData {
 	}
 }
 
-func getTestCommandBuilder(videos []*VideoData) *commandBuilder.Test {
-	expectedCommands := make([]*commandBuilder.ExpectedCommand, 0, len(videos))
+func getTestCommandBuilder(videos []*VideoData) *runner.Test {
+	expectedCommands := make([]*runner.ExpectedCommand, 0, len(videos))
 	for _, video := range videos {
 		expectedCommands = append(expectedCommands, getExpectedCommandForVideoData(video))
 	}
 
-	return &commandBuilder.Test{ExpectedCommands: expectedCommands}
+	return &runner.Test{ExpectedCommands: expectedCommands}
 }
 
-func getTestErrorCommandBuilder(videos []*VideoData) *commandBuilder.Test {
-	expectedCommands := make([]*commandBuilder.ExpectedCommand, 0, len(videos))
+func getTestErrorCommandBuilder(videos []*VideoData) *runner.Test {
+	expectedCommands := make([]*runner.ExpectedCommand, 0, len(videos))
 	for _, video := range videos {
 		expectedCommands = append(expectedCommands, getExpectedCommandWithErrorForVideoData(video))
 	}
 
-	return &commandBuilder.Test{ExpectedCommands: expectedCommands}
+	return &runner.Test{ExpectedCommands: expectedCommands}
 }
 
-func getExpectedCommandForVideoData(video *VideoData) *commandBuilder.ExpectedCommand {
-	return commandBuilder.NewExpectedCommand(
+func getExpectedCommandForVideoData(video *VideoData) *runner.ExpectedCommand {
+	return runner.NewExpectedCommand(
 		"",
 		getDownloadCommand(video),
 		fmt.Sprintf("output for video %s", video.GUID),
@@ -84,8 +84,8 @@ func getExpectedCommandForVideoData(video *VideoData) *commandBuilder.ExpectedCo
 	)
 }
 
-func getExpectedCommandWithErrorForVideoData(video *VideoData) *commandBuilder.ExpectedCommand {
-	return commandBuilder.NewExpectedCommand(
+func getExpectedCommandWithErrorForVideoData(video *VideoData) *runner.ExpectedCommand {
+	return runner.NewExpectedCommand(
 		"",
 		getDownloadCommand(video),
 		fmt.Sprintf("error downloading video %s", video.GUID),
@@ -95,7 +95,7 @@ func getExpectedCommandWithErrorForVideoData(video *VideoData) *commandBuilder.E
 
 func getDownloadCommand(video *VideoData) string {
 	return fmt.Sprintf(
-		"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/%s-%s.%%(ext)s https://youtu.be/%s",
+		"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/%s-%s.%%\\(ext\\)s https://youtu.be/%s",
 		video.Title,
 		video.GUID,
 		video.GUID,
@@ -103,7 +103,7 @@ func getDownloadCommand(video *VideoData) string {
 }
 
 func TestHelperProcess(*testing.T) {
-	commandBuilder.ErrorCodeHelper()
+	runner.ErrorCodeHelper()
 }
 
 func removeFile(t *testing.T, fileName string) {

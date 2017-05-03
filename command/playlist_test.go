@@ -11,8 +11,8 @@ import (
 
 	youtube "google.golang.org/api/youtube/v3"
 
-	"github.com/guywithnose/commandBuilder"
 	"github.com/guywithnose/feedTube/command"
+	"github.com/guywithnose/runner"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
 )
@@ -24,17 +24,17 @@ func TestCmdPlaylist(t *testing.T) {
 	ts := getTestServer(getDefaultPlaylistResponses())
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
+	cb := &runner.Test{
+		ExpectedCommands: []*runner.ExpectedCommand{
+			runner.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%\\(ext\\)s https://youtu.be/vId1",
 				"video 1 output",
 				0,
 			),
-			commandBuilder.NewExpectedCommand(
+			runner.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%\\(ext\\)s https://youtu.be/vId2",
 				"video 2 output",
 				0,
 			),
@@ -42,7 +42,7 @@ func TestCmdPlaylist(t *testing.T) {
 	}
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	assert.Nil(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
@@ -59,9 +59,9 @@ func TestCmdPlaylistDownloadFailure(t *testing.T) {
 	command.YoutubeAPIURLBase = ts.URL
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	cb := getBaseRunner()
-	cb.ExpectedCommands[1] = commandBuilder.NewExpectedCommand(
+	cb.ExpectedCommands[1] = runner.NewExpectedCommand(
 		"",
-		fmt.Sprintf("/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o %s/t2-vId2.%%(ext)s https://youtu.be/vId2", getOutputFolder()),
+		fmt.Sprintf("/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o %s/t2-vId2.%%\\(ext\\)s https://youtu.be/vId2", getOutputFolder()),
 		"video 2 output",
 		1,
 	)
@@ -74,7 +74,7 @@ func TestCmdPlaylistDownloadFailure(t *testing.T) {
 			getOutputFolder(),
 		),
 	)
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 }
 
@@ -85,17 +85,17 @@ func TestCmdPlaylistOverrideTitle(t *testing.T) {
 	ts := getTestServer(getDefaultPlaylistResponses())
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
+	cb := &runner.Test{
+		ExpectedCommands: []*runner.ExpectedCommand{
+			runner.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%\\(ext\\)s https://youtu.be/vId1",
 				"video 1 output",
 				0,
 			),
-			commandBuilder.NewExpectedCommand(
+			runner.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%\\(ext\\)s https://youtu.be/vId2",
 				"video 2 output",
 				0,
 			),
@@ -104,7 +104,7 @@ func TestCmdPlaylistOverrideTitle(t *testing.T) {
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.String("overrideTitle", "ovride", "doc")
 	assert.Nil(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
@@ -161,15 +161,15 @@ func TestCmdPlaylistCleanup(t *testing.T) {
 	ts := getTestServer(getDefaultPlaylistResponses())
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
+	cb := &runner.Test{
+		ExpectedCommands: []*runner.ExpectedCommand{
+			runner.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%\\(ext\\)s https://youtu.be/vId2",
 				"video 2 output",
 				0,
 			),
-			commandBuilder.NewExpectedCommand(
+			runner.NewExpectedCommand(
 				"",
 				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
 				"Duration: 02:13:45.22, start",
@@ -180,7 +180,7 @@ func TestCmdPlaylistCleanup(t *testing.T) {
 	app, _, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.Bool("cleanupUnrelatedFiles", true, "doc")
 	assert.Nil(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 	assert.Equal(
 		t,
@@ -212,15 +212,15 @@ func TestCmdPlaylistCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 	ts := getTestServer(getDefaultPlaylistResponses())
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
+	cb := &runner.Test{
+		ExpectedCommands: []*runner.ExpectedCommand{
+			runner.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%\\(ext\\)s https://youtu.be/vId2",
 				"video 2 output",
 				0,
 			),
-			commandBuilder.NewExpectedCommand(
+			runner.NewExpectedCommand(
 				"",
 				"/usr/bin/ffprobe /tmp/testFeedTube/t-vId1.mp3",
 				"Duration: 02:13:45.22, start",
@@ -235,7 +235,7 @@ func TestCmdPlaylistCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 		command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)),
 		"could not remove unrelated file: remove /tmp/testFeedTube/unrelated: directory not empty",
 	)
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 	assert.Equal(t, "Removing file: /tmp/testFeedTube/unrelated\n", errWriter.String())
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
@@ -257,11 +257,11 @@ func TestCmdPlaylistFilter(t *testing.T) {
 	ts := getTestServer(getDefaultPlaylistResponses())
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
+	cb := &runner.Test{
+		ExpectedCommands: []*runner.ExpectedCommand{
+			runner.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%\\(ext\\)s https://youtu.be/vId2",
 				"video 2 output",
 				0,
 			),
@@ -270,7 +270,7 @@ func TestCmdPlaylistFilter(t *testing.T) {
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.String("filter", "t2", "doc")
 	assert.Nil(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 	xmlBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/xmlFile", outputFolder))
 	assert.Nil(t, err)
@@ -312,7 +312,7 @@ func TestCmdPlaylistNoBaseUrl(t *testing.T) {
 	ts := getTestServer(getDefaultPlaylistResponses())
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
-	cb := &commandBuilder.Test{}
+	cb := &runner.Test{}
 	set := flag.NewFlagSet("test", 0)
 	set.String("apiKey", "fakeApiKey", "doc")
 	set.String("outputFolder", outputFolder, "doc")
@@ -321,7 +321,7 @@ func TestCmdPlaylistNoBaseUrl(t *testing.T) {
 	assert.Nil(t, set.Parse([]string{"awesome"}))
 	app, writer, _ := appWithTestWriters()
 	assert.EqualError(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)), "You must specify an baseURL")
-	assert.Equal(t, []*commandBuilder.ExpectedCommand(nil), cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand(nil), cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 	assert.Equal(t, "", writer.String())
 }
@@ -333,17 +333,17 @@ func TestCmdPlaylistNoXmlFile(t *testing.T) {
 	ts := getTestServer(getDefaultPlaylistResponses())
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
-	cb := &commandBuilder.Test{
-		ExpectedCommands: []*commandBuilder.ExpectedCommand{
-			commandBuilder.NewExpectedCommand(
+	cb := &runner.Test{
+		ExpectedCommands: []*runner.ExpectedCommand{
+			runner.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%\\(ext\\)s https://youtu.be/vId1",
 				"video 1 output",
 				0,
 			),
-			commandBuilder.NewExpectedCommand(
+			runner.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%(ext)s https://youtu.be/vId2",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%\\(ext\\)s https://youtu.be/vId2",
 				"video 2 output",
 				0,
 			),
@@ -355,14 +355,14 @@ func TestCmdPlaylistNoXmlFile(t *testing.T) {
 	assert.Nil(t, set.Parse([]string{"awesome"}))
 	app, _, _ := appWithTestWriters()
 	assert.Nil(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
-	assert.Equal(t, []*commandBuilder.ExpectedCommand{}, cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 }
 
 func TestCmdPlaylistUsage(t *testing.T) {
 	set := flag.NewFlagSet("test", 0)
 	app, _, _ := appWithTestWriters()
-	cb := &commandBuilder.Test{}
+	cb := &runner.Test{}
 	assert.EqualError(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)), `Usage: "feedTube playlist {playlistID}"`)
 }
 
@@ -371,7 +371,7 @@ func TestCmdPlaylistNoOutputFolder(t *testing.T) {
 	set.String("apiKey", "fakeApiKey", "doc")
 	assert.Nil(t, set.Parse([]string{"awesome"}))
 	app, _, _ := appWithTestWriters()
-	cb := &commandBuilder.Test{}
+	cb := &runner.Test{}
 	assert.EqualError(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)), "You must specify an outputFolder")
 }
 
@@ -381,7 +381,7 @@ func TestCmdPlaylistNoApiKey(t *testing.T) {
 	set.String("outputFolder", outputFolder, "doc")
 	assert.Nil(t, set.Parse([]string{"awesome"}))
 	app, _, _ := appWithTestWriters()
-	cb := &commandBuilder.Test{}
+	cb := &runner.Test{}
 	assert.EqualError(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)), "You must specify an apiKey")
 }
 
@@ -396,7 +396,7 @@ func TestCmdPlaylistInvalidPlaylistID(t *testing.T) {
 	ts := getTestServer(responses)
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
-	cb := &commandBuilder.Test{}
+	cb := &runner.Test{}
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	assert.EqualError(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)), "playlist awesome not found")
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -409,7 +409,7 @@ func TestCmdPlaylistYoutubePlaylistError(t *testing.T) {
 	ts := getTestPlaylistServerOverrideResponse("/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet", "error")
 	defer ts.Close()
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
-	cb := &commandBuilder.Test{}
+	cb := &runner.Test{}
 	assert.EqualError(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)), "Playlist request failed: googleapi: got HTTP response code 500 with body: ")
 	assert.Equal(t, []error(nil), cb.Errors)
 }
@@ -420,7 +420,7 @@ func TestCmdPlaylistYoutubeSearchPage1Error(t *testing.T) {
 	runErrorTest(
 		t,
 		"playlist items request failed: googleapi: got HTTP response code 500 with body: ",
-		&commandBuilder.Test{},
+		&runner.Test{},
 		command.CmdPlaylist,
 	)
 }
@@ -431,11 +431,11 @@ func TestCmdPlaylistYoutubeSearchPage2Error(t *testing.T) {
 	runErrorTest(
 		t,
 		"playlist items request failed: googleapi: got HTTP response code 500 with body: ",
-		&commandBuilder.Test{
-			ExpectedCommands: []*commandBuilder.ExpectedCommand{
-				commandBuilder.NewExpectedCommand(
+		&runner.Test{
+			ExpectedCommands: []*runner.ExpectedCommand{
+				runner.NewExpectedCommand(
 					"",
-					"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%(ext)s https://youtu.be/vId1",
+					"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t-vId1.%\\(ext\\)s https://youtu.be/vId1",
 					"video 1 output",
 					0,
 				),
@@ -496,13 +496,13 @@ func TestCmdPlaylistYoutubeSearchInvalidVideos(t *testing.T) {
 	command.YoutubeAPIURLBase = ts.URL
 	defer ts.Close()
 	app, writer, _, set := getBaseAppAndFlagSet(t, outputFolder)
-	cb := &commandBuilder.Test{}
+	cb := &runner.Test{}
 	assert.EqualError(
 		t,
 		command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)),
 		`playlist items request failed: error parsing publish date on video vId2: parsing time "2006-01-02" as "2006-01-02T15:04:05Z07:00": cannot parse "" as "T"`,
 	)
-	assert.Equal(t, []*commandBuilder.ExpectedCommand(nil), cb.ExpectedCommands)
+	assert.Equal(t, []*runner.ExpectedCommand(nil), cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
 	assert.Equal(t, "", writer.String())
 }

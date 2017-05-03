@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/guywithnose/commandBuilder"
+	"github.com/guywithnose/runner"
 	"github.com/urfave/cli"
 )
 
@@ -58,7 +58,7 @@ func filterItems(filter string, items []*VideoData) []*VideoData {
 }
 
 // Build downloads the videos and builds the feed XML
-func Build(c *cli.Context, cmdBuilder commandBuilder.Builder, items []*VideoData, info *ChannelInfo) error {
+func Build(c *cli.Context, cmdBuilder runner.Builder, items []*VideoData, info *ChannelInfo) error {
 	if c.String("filter") != "" {
 		items = filterItems(c.String("filter"), items)
 	}
