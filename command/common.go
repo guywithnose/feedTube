@@ -63,7 +63,7 @@ func Build(c *cli.Context, cmdBuilder runner.Builder, items []*VideoData, info *
 		items = filterItems(c.String("filter"), items)
 	}
 
-	err := NewDownloader(cmdBuilder, c.String("outputFolder")).DownloadVideos(items)
+	err := NewDownloader(cmdBuilder, c.String("outputFolder"), c.String("quality")).DownloadVideos(items)
 	if err != nil {
 		return err
 	}

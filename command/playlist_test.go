@@ -41,6 +41,7 @@ func TestCmdPlaylist(t *testing.T) {
 		},
 	}
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -65,6 +66,7 @@ func TestCmdPlaylistDownloadFailure(t *testing.T) {
 		"video 2 output",
 		1,
 	)
+	set.String("quality", "0", "doc")
 	assert.EqualError(
 		t,
 		command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)),
@@ -103,6 +105,7 @@ func TestCmdPlaylistOverrideTitle(t *testing.T) {
 	}
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.String("overrideTitle", "ovride", "doc")
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -179,6 +182,7 @@ func TestCmdPlaylistCleanup(t *testing.T) {
 	}
 	app, _, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.Bool("cleanupUnrelatedFiles", true, "doc")
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -230,6 +234,7 @@ func TestCmdPlaylistCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 	}
 	app, _, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.Bool("cleanupUnrelatedFiles", true, "doc")
+	set.String("quality", "0", "doc")
 	assert.EqualError(
 		t,
 		command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)),
@@ -269,6 +274,7 @@ func TestCmdPlaylistFilter(t *testing.T) {
 	}
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.String("filter", "t2", "doc")
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -354,6 +360,7 @@ func TestCmdPlaylistNoXmlFile(t *testing.T) {
 	set.String("outputFolder", outputFolder, "doc")
 	assert.Nil(t, set.Parse([]string{"awesome"}))
 	app, _, _ := appWithTestWriters()
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdPlaylist(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)

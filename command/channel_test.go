@@ -26,6 +26,7 @@ func TestCmdChannel(t *testing.T) {
 	command.YoutubeAPIURLBase = ts.URL
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	cb := getBaseRunner()
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdChannel(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -50,6 +51,7 @@ func TestCmdChannelDownloadFailure(t *testing.T) {
 		"video 2 output",
 		1,
 	)
+	set.String("quality", "0", "doc")
 	assert.EqualError(
 		t,
 		command.CmdChannel(cb)(cli.NewContext(app, set, nil)),
@@ -73,6 +75,7 @@ func TestCmdChannelOverrideTitle(t *testing.T) {
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	cb := getBaseRunner()
 	set.String("overrideTitle", "ovride", "doc")
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdChannel(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -132,7 +135,7 @@ func TestCmdChannelFilter(t *testing.T) {
 		ExpectedCommands: []*runner.ExpectedCommand{
 			runner.NewExpectedCommand(
 				"",
-				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 0 -o /tmp/testFeedTube/t2-vId2.%\\(ext\\)s https://youtu.be/vId2",
+				"/usr/bin/youtube-dl -x --audio-format mp3 --audio-quality 5 -o /tmp/testFeedTube/t2-vId2.%\\(ext\\)s https://youtu.be/vId2",
 				"video 2 output",
 				0,
 			),
@@ -140,6 +143,7 @@ func TestCmdChannelFilter(t *testing.T) {
 	}
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.String("filter", "t2", "doc")
+	set.String("quality", "5", "doc")
 	assert.Nil(t, command.CmdChannel(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []error(nil), cb.Errors)
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
@@ -191,6 +195,7 @@ func TestCmdChannelInvalidXmlFile(t *testing.T) {
 	app, _, _ := appWithTestWriters()
 	set.String("xmlFile", "/notadir/invalidFile", "doc")
 	cb := getBaseRunner()
+	set.String("quality", "0", "doc")
 	assert.EqualError(t, command.CmdChannel(cb)(cli.NewContext(app, set, nil)), "open /notadir/invalidFile: no such file or directory")
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -206,6 +211,7 @@ func TestCmdChannelById(t *testing.T) {
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	assert.Nil(t, set.Parse([]string{"awesomeChannelId"}))
 	cb := getBaseRunner()
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdChannel(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -226,6 +232,7 @@ func TestCmdChannelNoRedownload(t *testing.T) {
 	command.YoutubeAPIURLBase = ts.URL
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	cb := getFfprobeRunner()
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdChannel(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -296,6 +303,7 @@ func TestCmdChannelInvalidDuration(t *testing.T) {
 		"Duration: 02:1E:45.22, start",
 		0,
 	)
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdChannel(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -322,6 +330,7 @@ func TestCmdChannelCleanup(t *testing.T) {
 	app, _, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.Bool("cleanupUnrelatedFiles", true, "doc")
 	cb := getFfprobeRunner()
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdChannel(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -356,6 +365,7 @@ func TestCmdChannelCleanupDoesNotRemoveDirectoriesWithFiles(t *testing.T) {
 	app, _, errWriter, set := getBaseAppAndFlagSet(t, outputFolder)
 	set.Bool("cleanupUnrelatedFiles", true, "doc")
 	cb := getFfprobeRunner()
+	set.String("quality", "0", "doc")
 	assert.EqualError(
 		t,
 		command.CmdChannel(cb)(cli.NewContext(app, set, nil)),
@@ -446,6 +456,7 @@ func TestCmdChannelAfter(t *testing.T) {
 	set.String("after", "07-07-06", "doc")
 	cb := getBaseRunner()
 	cb.ExpectedCommands = cb.ExpectedCommands[:1]
+	set.String("quality", "0", "doc")
 	assert.Nil(t, command.CmdChannel(cb)(cli.NewContext(app, set, nil)))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cb.ExpectedCommands)
 	assert.Equal(t, []error(nil), cb.Errors)
@@ -649,6 +660,7 @@ func TestCmdChannelYoutubeSearchNoTitle(t *testing.T) {
 		},
 	}
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
+	set.String("quality", "0", "doc")
 	assert.EqualError(
 		t,
 		command.CmdChannel(cb)(cli.NewContext(app, set, nil)),

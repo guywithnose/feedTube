@@ -16,7 +16,7 @@ func TestCompleteChannel(t *testing.T) {
 	app.Commands = command.Commands
 	os.Args = []string{os.Args[0], "channel", "--completion"}
 	command.Completion(cli.NewContext(app, set, nil))
-	assert.Equal(t, "--apiKey\n--filter\n--outputFolder\n--xmlFile\n--baseURL\n--cleanupUnrelatedFiles\n--overrideTitle\n--after\n", writer.String())
+	assert.Equal(t, "--apiKey\n--filter\n--outputFolder\n--xmlFile\n--baseURL\n--cleanupUnrelatedFiles\n--overrideTitle\n--quality\n--after\n", writer.String())
 }
 
 func TestCompleteChannelApiKey(t *testing.T) {

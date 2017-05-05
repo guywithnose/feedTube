@@ -37,6 +37,11 @@ var flags = []cli.Flag{
 		Name:  "overrideTitle, t",
 		Usage: "Manually set the feed title",
 	},
+	cli.StringFlag{
+		Name:  "quality, q",
+		Usage: "Set the audio quality (see man ffmpeg)",
+		Value: "0",
+	},
 }
 
 // Commands defines the commands that can be called on hostBuilder

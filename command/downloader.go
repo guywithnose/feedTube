@@ -12,13 +12,15 @@ import (
 type Downloader struct {
 	cmdBuilder   runner.Builder
 	outputFolder string
+	quality      string
 }
 
 // NewDownloader returns a new Downloader
-func NewDownloader(cmdBuilder runner.Builder, outputFolder string) *Downloader {
+func NewDownloader(cmdBuilder runner.Builder, outputFolder string, quality string) *Downloader {
 	return &Downloader{
 		cmdBuilder:   cmdBuilder,
 		outputFolder: outputFolder,
+		quality:      quality,
 	}
 }
 
@@ -45,7 +47,7 @@ func (downloader Downloader) downloadVideo(videoID, fileName string) error {
 		"--audio-format",
 		"mp3",
 		"--audio-quality",
-		"0",
+		downloader.quality,
 		"-o",
 		fmt.Sprintf("%s/%s.%%(ext)s", downloader.outputFolder, fileName),
 		fmt.Sprintf("https://youtu.be/%s", videoID),

@@ -13,7 +13,7 @@ func TestDownloader(t *testing.T) {
 	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
 	videos := []*VideoData{getVideoData("vId1", "t"), getVideoData("vId2", "t2")}
 	cmdBuilder := getTestCommandBuilder(videos)
-	downloader := NewDownloader(cmdBuilder, outputFolder)
+	downloader := NewDownloader(cmdBuilder, outputFolder, "0")
 	assert.Nil(t, downloader.DownloadVideos(videos))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cmdBuilder.ExpectedCommands)
 	assert.Equal(t, []error(nil), cmdBuilder.Errors)
@@ -28,7 +28,7 @@ func TestDownloaderDoesntReDownloadExisitngFiles(t *testing.T) {
 	assert.Nil(t, err)
 	videos := []*VideoData{getVideoData("vId1", "t"), getVideoData("vId2", "t2")}
 	cmdBuilder := getTestCommandBuilder(videos[1:])
-	downloader := NewDownloader(cmdBuilder, outputFolder)
+	downloader := NewDownloader(cmdBuilder, outputFolder, "0")
 	assert.Nil(t, downloader.DownloadVideos(videos))
 	assert.Equal(t, []*runner.ExpectedCommand{}, cmdBuilder.ExpectedCommands)
 	assert.Equal(t, []error(nil), cmdBuilder.Errors)
@@ -38,7 +38,7 @@ func TestDownloaderDownloadError(t *testing.T) {
 	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
 	videos := []*VideoData{getVideoData("vId1", "t")}
 	cmdBuilder := getTestErrorCommandBuilder(videos)
-	downloader := NewDownloader(cmdBuilder, outputFolder)
+	downloader := NewDownloader(cmdBuilder, outputFolder, "0")
 	assert.EqualError(
 		t,
 		downloader.DownloadVideos(videos),
