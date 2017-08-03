@@ -86,12 +86,29 @@ func getDefaultChannelResponses() map[string]string {
 				Snippet: &youtube.SearchResultSnippet{
 					Title:       "t",
 					Description: "d",
+					PublishedAt: "2007-01-03T15:04:05Z",
+					Thumbnails: &youtube.ThumbnailDetails{
+						Default: &youtube.Thumbnail{
+							Url: "https://images.com/vidLiveThumb.jpg",
+						},
+					},
+					LiveBroadcastContent: "live",
+				},
+				Id: &youtube.ResourceId{
+					VideoId: "vIdLive",
+				},
+			},
+			{
+				Snippet: &youtube.SearchResultSnippet{
+					Title:       "t",
+					Description: "d",
 					PublishedAt: "2007-01-02T15:04:05Z",
 					Thumbnails: &youtube.ThumbnailDetails{
 						Default: &youtube.Thumbnail{
 							Url: "https://images.com/vid1Thumb.jpg",
 						},
 					},
+					LiveBroadcastContent: "none",
 				},
 				Id: &youtube.ResourceId{
 					VideoId: "vId1",
@@ -106,9 +123,10 @@ func getDefaultChannelResponses() map[string]string {
 		Items: []*youtube.SearchResult{
 			{
 				Snippet: &youtube.SearchResultSnippet{
-					Title:       "t2",
-					Description: "d2",
-					PublishedAt: "2006-01-02T15:04:05Z",
+					Title:                "t2",
+					Description:          "d2",
+					PublishedAt:          "2006-01-02T15:04:05Z",
+					LiveBroadcastContent: "none",
 				},
 				Id: &youtube.ResourceId{
 					VideoId: "vId2",
@@ -151,6 +169,7 @@ func getDefaultChannelResponses() map[string]string {
 							Url: "https://images.com/vid1Thumb.jpg",
 						},
 					},
+					LiveBroadcastContent: "none",
 				},
 				Id: &youtube.ResourceId{
 					VideoId: "vId1",
@@ -159,7 +178,8 @@ func getDefaultChannelResponses() map[string]string {
 		},
 	}
 	bytes, _ = json.Marshal(searchPage1WithAfter)
-	responses["/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&publishedAfter=2006-07-07T00%3A00%3A00Z&type=video"] = string(bytes)
+	responses["/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&publishedAfter=2006-07-07T00%3A00%3A00Z&type=video"] =
+		string(bytes)
 
 	channelIDInfo := youtube.ChannelListResponse{Items: []*youtube.Channel{}}
 	bytes, _ = json.Marshal(channelIDInfo)
@@ -168,9 +188,9 @@ func getDefaultChannelResponses() map[string]string {
 	return responses
 }
 
-func getTestChannelServerOverrideResponse(URL, response string) *httptest.Server {
+func getTestChannelServerOverrideResponse(URL string) *httptest.Server {
 	responses := getDefaultChannelResponses()
-	responses[URL] = response
+	responses[URL] = "error"
 	server := getTestServer(responses)
 	command.YoutubeAPIURLBase = server.URL
 	return server

@@ -11,16 +11,14 @@ gometalinter --vendored-linters \
     --enable gocyclo \
     --enable gofmt \
     --enable golint \
-    --enable gosimple \
     --enable ineffassign \
     --enable interfacer \
     --enable lll --line-length=160 \
     --enable misspell \
-    --enable staticcheck \
+    --enable megacheck \
     --enable structcheck \
     --enable unconvert \
     --enable unparam \
-    --enable unused \
     --enable varcheck \
     --enable vet \
     --enable vetshadow \

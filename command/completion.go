@@ -25,8 +25,6 @@ func Completion(c *cli.Context) {
 	if len(os.Args) > 2 {
 		completeFlags(c)
 	}
-
-	return
 }
 
 func completeFlags(c *cli.Context) {

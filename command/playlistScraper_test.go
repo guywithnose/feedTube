@@ -22,7 +22,7 @@ func TestGetVideosForPlaylist(t *testing.T) {
 }
 
 func TestPlaylistRequestFailure(t *testing.T) {
-	ts := getTestPlaylistServerOverrideResponse("/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet", "error")
+	ts := getTestPlaylistServerOverrideResponse("/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet")
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
 	_, _, err := command.NewPlaylistScraper("fakeApiKey").GetVideosForPlaylist("awesome")
@@ -50,7 +50,7 @@ func TestPlaylistZeroResults(t *testing.T) {
 }
 
 func TestPage1Failure(t *testing.T) {
-	ts := getTestPlaylistServerOverrideResponse("/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet", "error")
+	ts := getTestPlaylistServerOverrideResponse("/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet")
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
 	_, _, err := command.NewPlaylistScraper("fakeApiKey").GetVideosForPlaylist("awesome")
@@ -62,7 +62,7 @@ func TestPage1Failure(t *testing.T) {
 }
 
 func TestPage2Failure(t *testing.T) {
-	ts := getTestPlaylistServerOverrideResponse("/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet", "error")
+	ts := getTestPlaylistServerOverrideResponse("/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet")
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
 	_, _, err := command.NewPlaylistScraper("fakeApiKey").GetVideosForPlaylist("awesome")
@@ -173,9 +173,9 @@ func getDefaultPlaylistResponses() map[string]string {
 	return responses
 }
 
-func getTestPlaylistServerOverrideResponse(URL, response string) *httptest.Server {
+func getTestPlaylistServerOverrideResponse(URL string) *httptest.Server {
 	responses := getDefaultPlaylistResponses()
-	responses[URL] = response
+	responses[URL] = "error"
 	server := getTestServer(responses)
 	command.YoutubeAPIURLBase = server.URL
 	return server

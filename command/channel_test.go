@@ -440,6 +440,7 @@ func TestCmdChannelAfter(t *testing.T) {
 							Url: "https://images.com/vid1Thumb.jpg",
 						},
 					},
+					LiveBroadcastContent: "none",
 				},
 				Id: &youtube.ResourceId{
 					VideoId: "vId1",
@@ -448,7 +449,8 @@ func TestCmdChannelAfter(t *testing.T) {
 		},
 	}
 	bytes, _ := json.Marshal(searchPage1)
-	responses["/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&publishedAfter=2006-07-07T00%3A00%3A00Z&type=video"] = string(bytes)
+	responses["/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&publishedAfter=2006-07-07T00%3A00%3A00Z&type=video"] =
+		string(bytes)
 	ts := getTestServer(responses)
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
@@ -512,7 +514,7 @@ func TestCmdChannelYoutubeChannelError(t *testing.T) {
 	outputFolder := getOutputFolder()
 	defer removeFile(t, outputFolder)
 	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
-	ts := getTestChannelServerOverrideResponse("/channels?alt=json&forUsername=awesome&key=fakeApiKey&part=snippet", "error")
+	ts := getTestChannelServerOverrideResponse("/channels?alt=json&forUsername=awesome&key=fakeApiKey&part=snippet")
 	defer ts.Close()
 	cb := &runner.Test{}
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
@@ -528,7 +530,7 @@ func TestCmdChannelYoutubeChannelIdError(t *testing.T) {
 	outputFolder := getOutputFolder()
 	defer removeFile(t, outputFolder)
 	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
-	ts := getTestChannelServerOverrideResponse("/channels?alt=json&id=awesomeChannelId&key=fakeApiKey&part=snippet", "error")
+	ts := getTestChannelServerOverrideResponse("/channels?alt=json&id=awesomeChannelId&key=fakeApiKey&part=snippet")
 	defer ts.Close()
 	cb := &runner.Test{}
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
@@ -542,7 +544,7 @@ func TestCmdChannelYoutubeChannelIdError(t *testing.T) {
 }
 
 func TestCmdChannelYoutubeSearchPage1Error(t *testing.T) {
-	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&type=video", "error")
+	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&type=video")
 	defer ts.Close()
 	runErrorTest(
 		t,
@@ -553,7 +555,9 @@ func TestCmdChannelYoutubeSearchPage1Error(t *testing.T) {
 }
 
 func TestCmdChannelYoutubeSearchPage2Error(t *testing.T) {
-	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&pageToken=page2&part=snippet&type=video", "error")
+	ts := getTestChannelServerOverrideResponse(
+		"/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&pageToken=page2&part=snippet&type=video",
+	)
 	defer ts.Close()
 	cb := getBaseRunner()
 	cb.ExpectedCommands = cb.ExpectedCommands[:1]
@@ -582,6 +586,7 @@ func TestCmdChannelYoutubeSearchInvalidVideos(t *testing.T) {
 							Url: "https://images.com/vid1Thumb.jpg",
 						},
 					},
+					LiveBroadcastContent: "none",
 				},
 				Id: &youtube.ResourceId{
 					VideoId: "vId1",
@@ -589,9 +594,10 @@ func TestCmdChannelYoutubeSearchInvalidVideos(t *testing.T) {
 			},
 			{
 				Snippet: &youtube.SearchResultSnippet{
-					Title:       "t2",
-					Description: "d2",
-					PublishedAt: "2006-01-02T15:04:05Z",
+					Title:                "t2",
+					Description:          "d2",
+					PublishedAt:          "2006-01-02T15:04:05Z",
+					LiveBroadcastContent: "none",
 				},
 				Id: &youtube.ResourceId{
 					VideoId: "",
@@ -599,9 +605,10 @@ func TestCmdChannelYoutubeSearchInvalidVideos(t *testing.T) {
 			},
 			{
 				Snippet: &youtube.SearchResultSnippet{
-					Title:       "t2",
-					Description: "d2",
-					PublishedAt: "2006-01-02",
+					Title:                "t2",
+					Description:          "d2",
+					PublishedAt:          "2006-01-02",
+					LiveBroadcastContent: "none",
 				},
 				Id: &youtube.ResourceId{
 					VideoId: "vId1",
@@ -634,9 +641,10 @@ func TestCmdChannelYoutubeSearchNoTitle(t *testing.T) {
 		Items: []*youtube.SearchResult{
 			{
 				Snippet: &youtube.SearchResultSnippet{
-					Title:       "",
-					Description: "d2",
-					PublishedAt: "2006-01-02T15:04:05Z",
+					Title:                "",
+					Description:          "d2",
+					PublishedAt:          "2006-01-02T15:04:05Z",
+					LiveBroadcastContent: "none",
 				},
 				Id: &youtube.ResourceId{
 					VideoId: "vId2",

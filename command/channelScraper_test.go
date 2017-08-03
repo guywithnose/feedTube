@@ -50,7 +50,7 @@ func TestGetVideosForChannelIdWithInvalidAfter(t *testing.T) {
 }
 
 func TestChannelFailure(t *testing.T) {
-	ts := getTestChannelServerOverrideResponse("/channels?alt=json&forUsername=awesome&key=fakeApiKey&part=snippet", "error")
+	ts := getTestChannelServerOverrideResponse("/channels?alt=json&forUsername=awesome&key=fakeApiKey&part=snippet")
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
 	_, _, err := command.NewChannelScraper("fakeApiKey").GetVideosForChannel("awesome", "")
@@ -58,7 +58,7 @@ func TestChannelFailure(t *testing.T) {
 }
 
 func TestChannelIdFailure(t *testing.T) {
-	ts := getTestChannelServerOverrideResponse("/channels?alt=json&id=awesomeChannelId&key=fakeApiKey&part=snippet", "error")
+	ts := getTestChannelServerOverrideResponse("/channels?alt=json&id=awesomeChannelId&key=fakeApiKey&part=snippet")
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
 	_, _, err := command.NewChannelScraper("fakeApiKey").GetVideosForChannel("awesomeChannelId", "")
@@ -66,7 +66,7 @@ func TestChannelIdFailure(t *testing.T) {
 }
 
 func TestSearchPage1Failure(t *testing.T) {
-	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&type=video", "error")
+	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&part=snippet&type=video")
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
 	_, _, err := command.NewChannelScraper("fakeApiKey").GetVideosForChannel("awesome", "")
@@ -74,7 +74,9 @@ func TestSearchPage1Failure(t *testing.T) {
 }
 
 func TestSearchPage2Failure(t *testing.T) {
-	ts := getTestChannelServerOverrideResponse("/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&pageToken=page2&part=snippet&type=video", "error")
+	ts := getTestChannelServerOverrideResponse(
+		"/search?alt=json&channelId=awesomeChannelId&key=fakeApiKey&pageToken=page2&part=snippet&type=video",
+	)
 	defer ts.Close()
 	command.YoutubeAPIURLBase = ts.URL
 	_, _, err := command.NewChannelScraper("fakeApiKey").GetVideosForChannel("awesome", "")
@@ -87,9 +89,10 @@ func TestInvalidVideoData(t *testing.T) {
 		Items: []*youtube.SearchResult{
 			{
 				Snippet: &youtube.SearchResultSnippet{
-					Title:       "t2",
-					Description: "d2",
-					PublishedAt: "2006-01-02",
+					Title:                "t2",
+					Description:          "d2",
+					PublishedAt:          "2006-01-02",
+					LiveBroadcastContent: "none",
 				},
 				Id: &youtube.ResourceId{
 					VideoId: "vId1",

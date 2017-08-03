@@ -413,7 +413,7 @@ func TestCmdPlaylistYoutubePlaylistError(t *testing.T) {
 	outputFolder := fmt.Sprintf("%s/testFeedTube", os.TempDir())
 	defer removeFile(t, outputFolder)
 	assert.Nil(t, os.MkdirAll(outputFolder, 0777))
-	ts := getTestPlaylistServerOverrideResponse("/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet", "error")
+	ts := getTestPlaylistServerOverrideResponse("/playlists?alt=json&id=awesome&key=fakeApiKey&part=snippet")
 	defer ts.Close()
 	app, _, _, set := getBaseAppAndFlagSet(t, outputFolder)
 	cb := &runner.Test{}
@@ -422,7 +422,7 @@ func TestCmdPlaylistYoutubePlaylistError(t *testing.T) {
 }
 
 func TestCmdPlaylistYoutubeSearchPage1Error(t *testing.T) {
-	ts := getTestPlaylistServerOverrideResponse("/playlistItems?alt=json&key=fakeApiKey&part=snippet&playlistId=awesome", "error")
+	ts := getTestPlaylistServerOverrideResponse("/playlistItems?alt=json&key=fakeApiKey&part=snippet&playlistId=awesome")
 	defer ts.Close()
 	runErrorTest(
 		t,
@@ -433,7 +433,7 @@ func TestCmdPlaylistYoutubeSearchPage1Error(t *testing.T) {
 }
 
 func TestCmdPlaylistYoutubeSearchPage2Error(t *testing.T) {
-	ts := getTestPlaylistServerOverrideResponse("/playlistItems?alt=json&key=fakeApiKey&pageToken=page2&part=snippet&playlistId=awesome", "error")
+	ts := getTestPlaylistServerOverrideResponse("/playlistItems?alt=json&key=fakeApiKey&pageToken=page2&part=snippet&playlistId=awesome")
 	defer ts.Close()
 	runErrorTest(
 		t,

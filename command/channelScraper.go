@@ -84,6 +84,10 @@ func parseSearchResults(results []*youtube.SearchResult) ([]*VideoData, error) {
 			return nil, fmt.Errorf("error parsing publish date on video %s: %v", result.Id.VideoId, err)
 		}
 
+		if result.Snippet.LiveBroadcastContent != "none" {
+			continue
+		}
+
 		item := &VideoData{
 			GUID:        result.Id.VideoId,
 			Link:        fmt.Sprintf("https://youtu.be/%s", result.Id.VideoId),
