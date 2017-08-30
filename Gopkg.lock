@@ -22,13 +22,14 @@
 [[projects]]
   name = "github.com/kennygrant/sanitize"
   packages = ["."]
-  revision = "6a0bfdde8629a3a3a7418a7eae45c54154692514"
-  version = "v1.2"
+  revision = "2e6820834a1f36c626bf19a253b7d3cc060e9b8b"
+  version = "v1.2.3"
 
 [[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
-  revision = "ff09b135c25aae272398c51a07235b90a75aa4f0"
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -45,24 +46,24 @@
 [[projects]]
   name = "github.com/urfave/cli"
   packages = ["."]
-  revision = "0bdeddeeb0f650497d603c4ad7b20cfe685682f6"
-  version = "v1.19.1"
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp","html","html/atom"]
-  revision = "d379faa25cbdc04d653984913a2ceb43b0bc46d7"
+  revision = "cd69bc3fc700721b709c3a59e16e24c67b58f6ff"
 
 [[projects]]
   branch = "master"
   name = "google.golang.org/api"
   packages = ["gensupport","googleapi","googleapi/internal/uritemplates","googleapi/transport","youtube/v3"]
-  revision = "fbbaff1827317122a8a0e1b24de25df8417ce87b"
+  revision = "7afc123cf726cd2f253faa3e144d2ab65477b18f"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "77c87248c674ceb1c28278aa6cef97e164f199574eee7518f3135d9e71d413ea"
+  inputs-digest = "81e33a32c4fbedfb09b46e38659c23fe592b683cbff71fc900b1b5696bfce5b6"
   solver-name = "gps-cdcl"
   solver-version = 1

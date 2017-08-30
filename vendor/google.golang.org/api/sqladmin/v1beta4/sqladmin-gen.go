@@ -554,9 +554,10 @@ type DatabaseInstance struct {
 	CurrentDiskSize int64 `json:"currentDiskSize,omitempty,string"`
 
 	// DatabaseVersion: The database engine type and version. The
-	// databaseVersion can not be changed after instance creation. Can be
-	// MYSQL_5_5, MYSQL_5_6 or MYSQL_5_7. Defaults to MYSQL_5_6. MYSQL_5_7
-	// is applicable only to Second Generation instances.
+	// databaseVersion field can not be changed after instance creation.
+	// MySQL Second Generation instances: MYSQL_5_7 (default) or MYSQL_5_6.
+	// PostgreSQL instances: POSTGRES_9_6 MySQL First Generation instances:
+	// MYSQL_5_6 (default) or MYSQL_5_5
 	DatabaseVersion string `json:"databaseVersion,omitempty"`
 
 	// Etag: HTTP 1.1 Entity tag for the resource.
@@ -565,6 +566,11 @@ type DatabaseInstance struct {
 	// FailoverReplica: The name and status of the failover replica. This
 	// property is applicable only to Second Generation instances.
 	FailoverReplica *DatabaseInstanceFailoverReplica `json:"failoverReplica,omitempty"`
+
+	// GceZone: The GCE zone that the instance is serving from. In case when
+	// the instance is failed over to standby zone, this value may be
+	// different with what user specified in the settings.
+	GceZone string `json:"gceZone,omitempty"`
 
 	// InstanceType: The instance type. This can be one of the
 	// following.
@@ -745,6 +751,128 @@ type DatabasesListResponse struct {
 
 func (s *DatabasesListResponse) MarshalJSON() ([]byte, error) {
 	type noMethod DatabasesListResponse
+	raw := noMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// DemoteMasterConfiguration: Read-replica configuration for connecting
+// to the on-premises master.
+type DemoteMasterConfiguration struct {
+	// Kind: This is always sql#demoteMasterConfiguration.
+	Kind string `json:"kind,omitempty"`
+
+	// MysqlReplicaConfiguration: MySQL specific configuration when
+	// replicating from a MySQL on-premises master. Replication
+	// configuration information such as the username, password,
+	// certificates, and keys are not stored in the instance metadata. The
+	// configuration information is used only to set up the replication
+	// connection and is stored by MySQL in a file named master.info in the
+	// data directory.
+	MysqlReplicaConfiguration *DemoteMasterMySqlReplicaConfiguration `json:"mysqlReplicaConfiguration,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Kind") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Kind") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *DemoteMasterConfiguration) MarshalJSON() ([]byte, error) {
+	type noMethod DemoteMasterConfiguration
+	raw := noMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// DemoteMasterContext: Database instance demote master context.
+type DemoteMasterContext struct {
+	// Kind: This is always sql#demoteMasterContext.
+	Kind string `json:"kind,omitempty"`
+
+	// MasterInstanceName: The name of the instance which will act as
+	// on-premises master in the replication setup.
+	MasterInstanceName string `json:"masterInstanceName,omitempty"`
+
+	// ReplicaConfiguration: Configuration specific to read-replicas
+	// replicating from the on-premises master.
+	ReplicaConfiguration *DemoteMasterConfiguration `json:"replicaConfiguration,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Kind") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Kind") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *DemoteMasterContext) MarshalJSON() ([]byte, error) {
+	type noMethod DemoteMasterContext
+	raw := noMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// DemoteMasterMySqlReplicaConfiguration: Read-replica configuration
+// specific to MySQL databases.
+type DemoteMasterMySqlReplicaConfiguration struct {
+	// CaCertificate: PEM representation of the trusted CA's x509
+	// certificate.
+	CaCertificate string `json:"caCertificate,omitempty"`
+
+	// ClientCertificate: PEM representation of the slave's x509
+	// certificate.
+	ClientCertificate string `json:"clientCertificate,omitempty"`
+
+	// ClientKey: PEM representation of the slave's private key. The
+	// corresponsing public key is encoded in the client's certificate. The
+	// format of the slave's private key can be either PKCS #1 or PKCS #8.
+	ClientKey string `json:"clientKey,omitempty"`
+
+	// Kind: This is always sql#demoteMasterMysqlReplicaConfiguration.
+	Kind string `json:"kind,omitempty"`
+
+	// Password: The password for the replication connection.
+	Password string `json:"password,omitempty"`
+
+	// Username: The username for the replication connection.
+	Username string `json:"username,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "CaCertificate") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "CaCertificate") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *DemoteMasterMySqlReplicaConfiguration) MarshalJSON() ([]byte, error) {
+	type noMethod DemoteMasterMySqlReplicaConfiguration
 	raw := noMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -1005,6 +1133,10 @@ type ImportContext struct {
 	// CSV: The file contains CSV data.
 	FileType string `json:"fileType,omitempty"`
 
+	// ImportUser: The PostgreSQL user for this import operation. Defaults
+	// to cloudsqlsuperuser. Used only for PostgreSQL instances.
+	ImportUser string `json:"importUser,omitempty"`
+
 	// Kind: This is always sql#importContext.
 	Kind string `json:"kind,omitempty"`
 
@@ -1093,6 +1225,36 @@ type InstancesCloneRequest struct {
 
 func (s *InstancesCloneRequest) MarshalJSON() ([]byte, error) {
 	type noMethod InstancesCloneRequest
+	raw := noMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// InstancesDemoteMasterRequest: Database demote master request.
+type InstancesDemoteMasterRequest struct {
+	// DemoteMasterContext: Contains details about the demoteMaster
+	// operation.
+	DemoteMasterContext *DemoteMasterContext `json:"demoteMasterContext,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DemoteMasterContext")
+	// to unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DemoteMasterContext") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *InstancesDemoteMasterRequest) MarshalJSON() ([]byte, error) {
+	type noMethod InstancesDemoteMasterRequest
 	raw := noMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -1295,8 +1457,8 @@ type IpConfiguration struct {
 	// not.
 	Ipv4Enabled bool `json:"ipv4Enabled,omitempty"`
 
-	// RequireSsl: Whether the mysqld should default to 'REQUIRE X509' for
-	// users connecting over IP.
+	// RequireSsl: Whether SSL connections over IP should be enforced or
+	// not.
 	RequireSsl bool `json:"requireSsl,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "AuthorizedNetworks")
@@ -1358,37 +1520,6 @@ type IpMapping struct {
 
 func (s *IpMapping) MarshalJSON() ([]byte, error) {
 	type noMethod IpMapping
-	raw := noMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// Labels: User defined labels for Cloud SQL instances.
-type Labels struct {
-	// Key: The key of the label.
-	Key string `json:"key,omitempty"`
-
-	// Value: The value of the label.
-	Value string `json:"value,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Key") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Key") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *Labels) MarshalJSON() ([]byte, error) {
-	type noMethod Labels
 	raw := noMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -1627,7 +1758,6 @@ type Operation struct {
 	// TargetId: Name of the database instance related to this operation.
 	TargetId string `json:"targetId,omitempty"`
 
-	// TargetLink: The URI of the instance related to the operation.
 	TargetLink string `json:"targetLink,omitempty"`
 
 	// TargetProject: The project ID of the target instance related to this
@@ -1909,9 +2039,6 @@ type Settings struct {
 	// Kind: This is always sql#settings.
 	Kind string `json:"kind,omitempty"`
 
-	// Labels: User defined labels.
-	Labels []*Labels `json:"labels,omitempty"`
-
 	// LocationPreference: The location preference settings. This allows the
 	// instance to be located as near as possible to either an App Engine
 	// app or GCE zone for better performance. App Engine co-location is
@@ -1940,9 +2067,9 @@ type Settings struct {
 	SettingsVersion int64 `json:"settingsVersion,omitempty,string"`
 
 	// StorageAutoResize: Configuration to increase storage size
-	// automatically. The default value is false. Applies only to Second
+	// automatically. The default value is true. Applies only to Second
 	// Generation instances.
-	StorageAutoResize bool `json:"storageAutoResize,omitempty"`
+	StorageAutoResize *bool `json:"storageAutoResize,omitempty"`
 
 	// StorageAutoResizeLimit: The maximum size to which storage capacity
 	// can be automatically increased. The default value is 0, which
@@ -1953,6 +2080,10 @@ type Settings struct {
 	// Tier: The tier of service for this instance, for example D1, D2. For
 	// more information, see pricing.
 	Tier string `json:"tier,omitempty"`
+
+	// UserLabels: User-provided labels, represented as a dictionary where
+	// each label is a single key value pair.
+	UserLabels map[string]string `json:"userLabels,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "ActivationPolicy") to
 	// unconditionally include in API requests. By default, fields with
@@ -4379,6 +4510,151 @@ func (c *InstancesDeleteCall) Do(opts ...googleapi.CallOption) (*Operation, erro
 
 }
 
+// method id "sql.instances.demoteMaster":
+
+type InstancesDemoteMasterCall struct {
+	s                            *Service
+	project                      string
+	instance                     string
+	instancesdemotemasterrequest *InstancesDemoteMasterRequest
+	urlParams_                   gensupport.URLParams
+	ctx_                         context.Context
+	header_                      http.Header
+}
+
+// DemoteMaster: Demotes the standalone instance to be a read replica
+// Cloud SQL instance of an on-premises master.
+func (r *InstancesService) DemoteMaster(project string, instance string, instancesdemotemasterrequest *InstancesDemoteMasterRequest) *InstancesDemoteMasterCall {
+	c := &InstancesDemoteMasterCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.project = project
+	c.instance = instance
+	c.instancesdemotemasterrequest = instancesdemotemasterrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *InstancesDemoteMasterCall) Fields(s ...googleapi.Field) *InstancesDemoteMasterCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *InstancesDemoteMasterCall) Context(ctx context.Context) *InstancesDemoteMasterCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *InstancesDemoteMasterCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *InstancesDemoteMasterCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancesdemotemasterrequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/demoteMaster")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"project":  c.project,
+		"instance": c.instance,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "sql.instances.demoteMaster" call.
+// Exactly one of *Operation or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *InstancesDemoteMasterCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Demotes the standalone instance to be a read replica Cloud SQL instance of an on-premises master.",
+	//   "httpMethod": "POST",
+	//   "id": "sql.instances.demoteMaster",
+	//   "parameterOrder": [
+	//     "project",
+	//     "instance"
+	//   ],
+	//   "parameters": {
+	//     "instance": {
+	//       "description": "Cloud SQL instance name.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "project": {
+	//       "description": "ID of the project that contains the instance.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "projects/{project}/instances/{instance}/demoteMaster",
+	//   "request": {
+	//     "$ref": "InstancesDemoteMasterRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "Operation"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/sqlservice.admin"
+	//   ]
+	// }
+
+}
+
 // method id "sql.instances.export":
 
 type InstancesExportCall struct {
@@ -5113,8 +5389,8 @@ func (r *InstancesService) List(project string) *InstancesListCall {
 	return c
 }
 
-// Filter sets the optional parameter "filter": A filter expression for
-// filtering listed instances.
+// Filter sets the optional parameter "filter": An expression for
+// filtering the results of the request, such as by name or label.
 func (c *InstancesListCall) Filter(filter string) *InstancesListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -5237,7 +5513,7 @@ func (c *InstancesListCall) Do(opts ...googleapi.CallOption) (*InstancesListResp
 	//   ],
 	//   "parameters": {
 	//     "filter": {
-	//       "description": "A filter expression for filtering listed instances.",
+	//       "description": "An expression for filtering the results of the request, such as by name or label.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
