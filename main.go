@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/guywithnose/feedTube/command"
 	"github.com/urfave/cli"
@@ -11,7 +12,7 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = command.Name
-	app.Version = command.Version
+	app.Version = fmt.Sprintf("%s-%s", command.Version, runtime.Version())
 	app.Author = "Robert Bittle"
 	app.Email = "guywithnose@gmail.com"
 	app.Usage = "feedTube channel channelName"
